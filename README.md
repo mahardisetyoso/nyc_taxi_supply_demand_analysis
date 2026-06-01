@@ -1,3 +1,5 @@
+# NYC Taxi Supply-Demand Gap Analysis
+
 > Identifying underserved zones and lost revenue windows using spatial aggregation and H3 indexing.
 
 ## Business Questions
@@ -21,7 +23,6 @@ NYC TLC Yellow Taxi 2023 Jan–Jun
 Direct Parquet download: `https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-0{1-6}.parquet`
 
 ## Architecture
-
 ## Project Status
 - [x] Repository setup
 - [ ] GCP infrastructure (Terraform)
