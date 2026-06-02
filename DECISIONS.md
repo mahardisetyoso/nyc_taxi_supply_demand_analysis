@@ -219,3 +219,11 @@ Before adding scope, switching tools, or revisiting any decision — read this f
 | Raw landing validation | Inline size check only (< 10MB = fail) | Pragmatic for Flow 1 raw. Deep validation (schema, row count) defer ke transform layer di dbt. |
 | Idempotency | Overwrite GCS objects on re-run. Source data immutable (TLC CloudFront). | Versioning GCS filename tidak reach dbt reproducibility (chain break at GCS→BQ). Reproducibility delivered via PySpark-injected metadata columns (`_ingested_at`, `_source_file`) di BQ raw table — implemented di Spark Flow nanti. |
 | Kestra namespace | `geoops.portfolio.raw` | Hierarchy scales to `transform` + `serve` layers. |
+
+
+## 2026-06-02 pipepline naming
+kestra/flows/
+├── flow_01_tlc_parquet_to_gcs.yaml      ← raw layer
+├── flow_02_osm_pbf_to_gcs.yaml          ← raw layer
+├── flow_03_h3_grid_generate.yaml        ← raw layer
+└── flow_04_spark_h3_enrichment.yaml     ← transform layer (later)

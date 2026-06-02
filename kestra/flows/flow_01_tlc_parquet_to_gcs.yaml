@@ -1,0 +1,73 @@
+id: flow_01_tlc_parquet_to_gcs
+namespace: geoops.portfolio.raw
+description: |
+  Land NYC TLC Yellow Taxi Parquet → GCS raw zone.
+  Production pattern: scheduled monthly + backfill capability untuk historical load.
+  Scope: 2023 full year (12 bulan) — supports seasonality analysis Q3.
+
+inputs:
+  - id: year
+    type: STRING
+    defaults: "2023"
+
+  - id: month
+    type: SELECT
+    defaults: "01"
+    values: ["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+variables:
+  filename: "yellow_tripdata_{{inputs.year}}-{{inputs.month}}.parquet"
+  source_url: "https://d37ci6vzurychx.cloudfront.net/trip-data/{{render(vars.filename)}}"
+  gcs_target: "gs://hardy-geo-de-267342/raw/tlc_yellow/year={{inputs.year}}/month={{inputs.month}}/{{render(vars.filename)}}"
+
+tasks:
+  - id: set_labels
+    type: io.kestra.plugin.core.execution.Labels
+    labels:
+      year: "{{inputs.year}}"
+      month: "{{inputs.month}}"
+      source: "tlc_cloudfront"
+      layer: "raw"
+
+  - id: download
+    type: io.kestra.plugin.scripts.shell.Commands
+    outputFiles:
+      - "*.parquet"
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - wget -q -O {{render(vars.filename)}} {{render(vars.source_url)}}
+      - ls -lh {{render(vars.filename)}}
+      - |
+        SIZE=$(stat -c%s {{render(vars.filename)}})
+        SIZE_MB=$((SIZE / 1024 / 1024))
+        echo "Downloaded ${SIZE_MB} MB"
+        if [ $SIZE -lt 10000000 ]; then
+          echo "ERROR: File <10MB, likely corrupted"
+          exit 1
+        fi
+
+  - id: upload_to_gcs
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{outputs.download.outputFiles[render(vars.filename)]}}"
+    to: "{{render(vars.gcs_target)}}"
+
+  - id: purge_local
+    type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
+    disabled: false
+
+triggers:
+  - id: monthly_schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 6 5 * *"
+    description: |
+      TLC releases ~5th of month untuk data bulan sebelumnya.
+      Schedule disabled — enable kalau lo mau demo live monthly ingestion.
+    disabled: true
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      serviceAccount: "{{ secret('GCP_CREDS') }}"
+      projectId: "hardy-geo-portofolio"
+      location: "asia-southeast1"
