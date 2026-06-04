@@ -1,0 +1,115 @@
+id: flow_03_taxi_zones_and_h3_grid
+namespace: geoops.portfolio.raw
+description: |
+  Land NYC Taxi Zones GeoJSON + generate H3 res 8 grid covering NYC.
+  Single-source pattern (D-027): taxi zones GeoJSON serves dual purpose
+  — spatial lookup table (zone ↔ borough) AND polyfill bounding for H3 grid.
+
+  Outputs:
+  - gs://.../raw/reference/nyc_taxi_zones.geojson (~1-2 MB, 263 features)
+  - gs://.../raw/h3_grid/h3_res8_nyc.parquet (~800 KB, ~12K cells)
+
+variables:
+  zones_source_url: "https://data.cityofnewyork.us/api/geospatial/8meu-9t5y?method=export&format=GeoJSON"
+  zones_filename: "nyc_taxi_zones.geojson"
+  zones_gcs_target: "gs://hardy-geo-de-267342/raw/reference/nyc_taxi_zones.geojson"
+  h3_filename: "h3_res8_nyc.parquet"
+  h3_gcs_target: "gs://hardy-geo-de-267342/raw/h3_grid/h3_res8_nyc.parquet"
+
+tasks:
+  - id: set_labels
+    type: io.kestra.plugin.core.execution.Labels
+    labels:
+      source: "nyc_opendata"
+      dataset_id: "8meu-9t5y"
+      h3_resolution: "8"
+      layer: "raw_and_derived"
+
+  - id: download_taxi_zones
+    type: io.kestra.plugin.scripts.shell.Commands
+    outputFiles:
+      - "*.geojson"
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - curl -sL -o {{render(vars.zones_filename)}} "{{render(vars.zones_source_url)}}"
+      - ls -lh {{render(vars.zones_filename)}}
+      - |
+        SIZE=$(stat -c%s {{render(vars.zones_filename)}})
+        SIZE_KB=$((SIZE / 1024))
+        echo "Downloaded ${SIZE_KB} KB"
+        if [ $SIZE -lt 500000 ]; then
+          echo "ERROR: File <500KB, likely error response"
+          exit 1
+        fi
+      - |
+        head -c 200 {{render(vars.zones_filename)}} | grep -q '"FeatureCollection"' \
+          && echo "GeoJSON structure verified" \
+          || (echo "ERROR: Not a valid FeatureCollection" && exit 1)
+
+  - id: upload_zones_to_gcs
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{outputs.download_taxi_zones.outputFiles[render(vars.zones_filename)]}}"
+    to: "{{render(vars.zones_gcs_target)}}"
+
+  - id: generate_h3_grid
+    type: io.kestra.plugin.scripts.python.Script
+    inputFiles:
+      nyc_taxi_zones.geojson: "{{outputs.download_taxi_zones.outputFiles[render(vars.zones_filename)]}}"
+    outputFiles:
+      - "*.parquet"
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    beforeCommands:
+      - pip install --quiet h3==4.1.2 geopandas==1.0.1 shapely==2.0.6 pyarrow pandas
+    script: |
+      import h3
+      import geopandas as gpd
+      import pandas as pd
+      from shapely.ops import unary_union
+
+      # Load taxi zones (materialized by Kestra inputFiles)
+      gdf = gpd.read_file("nyc_taxi_zones.geojson")
+      print(f"Loaded {len(gdf)} zones, CRS={gdf.crs}")
+
+      # Ensure WGS84 for H3
+      if gdf.crs != "EPSG:4326":
+          gdf = gdf.to_crs("EPSG:4326")
+
+      # Union all polygons
+      nyc_union = unary_union(gdf.geometry.tolist())
+      print(f"Union geometry type: {nyc_union.geom_type}")
+
+      # H3 v4 polyfill via geo_to_cells (accepts __geo_interface__)
+      cells = h3.geo_to_cells(nyc_union.__geo_interface__, res=8)
+      print(f"Generated {len(cells)} H3 cells at resolution 8")
+
+      # Sanity check
+      assert 900 <= len(cells) <= 1200  # ✅ correct, f"Unexpected cell count: {len(cells)}"
+
+      # Build DataFrame matching D-028 schema
+      df = pd.DataFrame({"h3_index": list(cells)})
+      df["h3_centroid_lat"] = df["h3_index"].apply(lambda h: h3.cell_to_latlng(h)[0])
+      df["h3_centroid_lng"] = df["h3_index"].apply(lambda h: h3.cell_to_latlng(h)[1])
+      df["h3_resolution"] = 8
+      df["h3_parent_res7"] = df["h3_index"].apply(lambda h: h3.cell_to_parent(h, 7))
+
+      # Save Parquet (Snappy compression)
+      df.to_parquet("h3_res8_nyc.parquet", compression="snappy", index=False)
+      print(f"Saved {len(df)} rows to h3_res8_nyc.parquet")
+
+  - id: upload_h3_grid_to_gcs
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{outputs.generate_h3_grid.outputFiles[render(vars.h3_filename)]}}"
+    to: "{{render(vars.h3_gcs_target)}}"
+
+  - id: purge_local
+    type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
+    disabled: false
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      serviceAccount: "{{ secret('GCP_CREDS') }}"
+      projectId: "hardy-geo-portofolio"
+      location: "asia-southeast1"
