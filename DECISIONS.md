@@ -220,6 +220,70 @@ Before adding scope, switching tools, or revisiting any decision — read this f
 | Idempotency | Overwrite GCS objects on re-run. Source data immutable (TLC CloudFront). | Versioning GCS filename tidak reach dbt reproducibility (chain break at GCS→BQ). Reproducibility delivered via PySpark-injected metadata columns (`_ingested_at`, `_source_file`) di BQ raw table — implemented di Spark Flow nanti. |
 | Kestra namespace | `geoops.portfolio.raw` | Hierarchy scales to `transform` + `serve` layers. |
 
+## DECISIONS — FLOW 3 PREP (TAXI ZONES + H3 GRID)
+
+### D-006a | AMENDMENT — Remove H3 Grid from Data Sources List
+**Date:** 2026-06-04 (Day 3 prep)
+**Original D-006:** 4 data sources — TLC Parquet, OSM, H3 Grid, NYC Taxi Zones.
+**Amended:** 3 data sources — TLC Parquet, OSM, NYC Taxi Zones.
+**Rationale:** H3 Grid removed from "data sources" — it is a derived dataset computed from Taxi Zones (see D-027), not an ingested source. Categorizing computed data as data source conflated raw vs derived layers.
+
+### D-027 | NYC Taxi Zones as Single Spatial Reference Source [MERGED]
+**Date:** 2026-06-04 (Day 3 prep)
+**Decision:** NYC Taxi Zones GeoJSON serves dual purpose as the single spatial reference source.
+**Dual purpose:**
+  1. **Spatial reference / lookup** — PULocationID and DOLocationID in TLC trips ↔ zone name + borough
+  2. **H3 polyfill source** — union 263 zone polygons → polyfill at res 8 → ~12K H3 cells
+
+**Rationale for merge (vs initially planned separate boroughs source):**
+  - Single source-of-truth for NYC spatial geometry
+  - Consistent coverage — H3 grid covers exactly the same area as analytical zone lookup
+  - No mismatch risk between "where can H3 cells exist" and "where can trips be assigned"
+  - Native join with TLC trip data via `locationid` (matches PULocationID/DOLocationID)
+
+**Source:** NYC OpenData — "NYC Taxi Zones" dataset (ID: `8meu-9t5y`)
+**Verified URL (2026-06-04):**
+
+**URL** https://data.cityofnewyork.us/api/geospatial/8meu-9t5y?method=export&format=GeoJSON
+
+**API pattern:** Socrata geospatial export — returns full dataset in single response, no pagination required.
+**Verified payload structure:** `FeatureCollection` with 263 features, properties = `{shape_area, locationid, shape_leng, zone, borough}`, geometry = `MultiPolygon`.
+
+**Trade-off accepted:**
+  - 263 polygon union polyfill (~10s) vs 5 boroughs union polyfill (~1s)
+  - One-time cost during H3 grid generation, negligible for portfolio scope
+  - Production scale would pre-compute dissolved geometry if rebuild becomes frequent
+
+**Storage outputs (Flow 3, Day 3 build):**
+  - `gs://hardy-geo-de-267342/raw/reference/nyc_taxi_zones.geojson` (~1-2 MB)
+  - `gs://hardy-geo-de-267342/raw/h3_grid/h3_res8_nyc.parquet` (~800 KB, ~12K rows)
+
+**Lock:** No fallback to separate boroughs source. Taxi zones = single spatial reference for entire project.
+
+### D-028 | H3 Library Version & Output Schema
+**Date:** 2026-06-04 (Day 3 prep)
+**Decision:** H3 v4 Python library (`h3-py` ≥ 4.0).
+**Output Parquet schema for `h3_res8_nyc.parquet`:**
+
+| Column | Type | Description |
+|---|---|---|
+| `h3_index` | STRING | H3 cell ID at resolution 8 |
+| `h3_centroid_lat` | FLOAT64 | Centroid latitude |
+| `h3_centroid_lng` | FLOAT64 | Centroid longitude |
+| `h3_resolution` | INT64 | Fixed at 8 |
+| `h3_parent_res7` | STRING | Parent H3 cell at res 7 (enables hierarchical aggregation later) |
+
+**Rationale:**
+  - H3 v4 = 2026 current standard. v3 deprecated. API change: `polyfill()` → `polygon_to_cells()` (or `geo_to_cells()`).
+  - Pre-compute centroids and parent in grid generation (one-time cost) avoids Spark recompute on every analytical query.
+  - Snappy compression — Spark default, good speed/size trade-off.
+
+### D-030 | Flow 3 Renaming Post-Merge
+**Date:** 2026-06-04 (Day 3 prep)
+**Original filename:** `flow_03_h3_grid_generate.yaml`
+**Renamed to:** `flow_03_taxi_zones_and_h3_grid.yaml`
+**Rationale:** Flow 3 now produces 2 outputs (taxi zones reference GeoJSON + H3 grid Parquet) as a consequence of D-027 merge. Original name only reflected H3 output, misleading on full responsibility.
+**Updates required:** File naming section in DECISIONS.md to be updated.
 
 ## 2026-06-02 pipepline naming
 kestra/flows/
