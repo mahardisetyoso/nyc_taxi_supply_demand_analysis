@@ -85,7 +85,7 @@ tasks:
       print(f"Generated {len(cells)} H3 cells at resolution 8")
 
       # Sanity check
-      assert 900 <= len(cells) <= 1200  # ✅ correct, f"Unexpected cell count: {len(cells)}"
+      assert 900 <= len(cells) <= 1200, f"Unexpected cell count: {len(cells)} (expected ~1000-1100 for NYC at res 8)"
 
       # Build DataFrame matching D-028 schema
       df = pd.DataFrame({"h3_index": list(cells)})

@@ -256,7 +256,9 @@ Before adding scope, switching tools, or revisiting any decision — read this f
 
 **Storage outputs (Flow 3, Day 3 build):**
   - `gs://hardy-geo-de-267342/raw/reference/nyc_taxi_zones.geojson` (~1-2 MB)
-  - `gs://hardy-geo-de-267342/raw/h3_grid/h3_res8_nyc.parquet` (~800 KB, ~12K rows)
+  - `gs://hardy-geo-de-267342/raw/h3_grid/h3_res8_nyc.parquet` (~80 KB, ~1,070 rows, centroid containment mode)
+
+**Granularity confirmed via Jupyter prototype (2026-06-04):** 1,070 H3 cells cover NYC ~784 km² (math: 1070 × 0.737 km²/cell = 789 km², matching expected). Initial estimate of ~12K cells was incorrect — caught during pre-production validation.
 
 **Lock:** No fallback to separate boroughs source. Taxi zones = single spatial reference for entire project.
 
