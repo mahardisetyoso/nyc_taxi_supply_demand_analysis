@@ -279,6 +279,7 @@ Before adding scope, switching tools, or revisiting any decision — read this f
   - Snappy compression — Spark default, good speed/size trade-off.
 
 ### D-030 | Flow 3 Renaming Post-Merge
+
 **Date:** 2026-06-04 (Day 3 prep)
 **Original filename:** `flow_03_h3_grid_generate.yaml`
 **Renamed to:** `flow_03_taxi_zones_and_h3_grid.yaml`
@@ -286,8 +287,9 @@ Before adding scope, switching tools, or revisiting any decision — read this f
 **Updates required:** File naming section in DECISIONS.md to be updated.
 
 ## 2026-06-02 pipepline naming
+
 kestra/flows/
-├── flow_01_tlc_parquet_to_gcs.yaml      ← raw layer
-├── flow_02_osm_pbf_to_gcs.yaml          ← raw layer
-├── flow_03_h3_grid_generate.yaml        ← raw layer
-└── flow_04_spark_h3_enrichment.yaml     ← transform layer (later)
+├── flow_01_tlc_parquet_to_gcs.yaml          ← raw layer (done Day 2)
+├── flow_02_osm_pbf_to_gcs.yaml              ← raw layer (TBD)
+├── flow_03_taxi_zones_and_h3_grid.yaml      ← raw + derived (Day 3)
+└── flow_04_spark_h3_enrichment.yaml         ← transform layer (later)
