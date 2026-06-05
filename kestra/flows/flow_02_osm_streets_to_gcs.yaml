@@ -23,7 +23,6 @@ tasks:
   - id: extract_drivable_streets
     type: io.kestra.plugin.scripts.python.Script
     containerImage: python:3.11
-    memory: 4Gi
     outputFiles:
       - "nyc_streets_drivable.parquet"
     beforeCommands:
