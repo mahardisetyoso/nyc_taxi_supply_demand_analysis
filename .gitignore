@@ -39,3 +39,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+# OSM source data — large files, sourced from Geofabrik on-demand
+*.pbf
+*.osm.bz2
+
+# Data output files — stored in GCS, not git
+*.parquet

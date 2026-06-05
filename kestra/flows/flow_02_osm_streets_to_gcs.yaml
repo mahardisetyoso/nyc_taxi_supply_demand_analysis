@@ -1,0 +1,89 @@
+id: flow_02_osm_streets_to_gcs
+namespace: nyc_taxi_supply_demand
+
+description: |
+  Flow 2 — NYC drivable street network from OSM.
+  Source: Geofabrik New York state (465 MB, ODbL license).
+  Filter: drivable highway classes, clipped to NYC bbox.
+  Output: GeoParquet → GCS raw zone.
+
+variables:
+  pbf_url: "https://download.geofabrik.de/north-america/us/new-york-latest.osm.pbf"
+  gcs_bucket: "hardy-geo-de-267342"
+  gcs_path: "raw/osm_nyc/streets/nyc_streets_drivable.parquet"
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      serviceAccount: "{{ secret('GCP_CREDS') }}"
+      projectId: "hardy-geo-portofolio"
+      location: "asia-southeast1"
+
+tasks:
+  - id: extract_drivable_streets
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: python:3.11
+    memory: 4Gi
+    outputFiles:
+      - "nyc_streets_drivable.parquet"
+    beforeCommands:
+      - pip install --quiet osmium geopandas pyarrow shapely
+    script: |
+      import urllib.request
+      import osmium
+      import geopandas as gpd
+      from shapely import wkb
+
+      PBF_URL = "{{ vars.pbf_url }}"
+      NYC_BBOX = (-74.26, 40.49, -73.70, 40.92)  # minlon, minlat, maxlon, maxlat
+      DRIVABLE = {
+          "motorway", "trunk", "primary", "secondary", "tertiary",
+          "motorway_link", "trunk_link", "primary_link",
+          "secondary_link", "tertiary_link",
+          "residential", "unclassified", "living_street",
+      }
+
+      print("Downloading NY state PBF (~465 MB)...")
+      urllib.request.urlretrieve(PBF_URL, "ny.osm.pbf")
+
+      class StreetHandler(osmium.SimpleHandler):
+          def __init__(self):
+              super().__init__()
+              self.wkbfab = osmium.geom.WKBFactory()
+              self.rows = []
+
+          def way(self, w):
+              hw = w.tags.get("highway")
+              if hw not in DRIVABLE:
+                  return
+              try:
+                  geom = wkb.loads(self.wkbfab.create_linestring(w), hex=True)
+              except Exception:
+                  return
+              minx, miny, maxx, maxy = geom.bounds
+              # skip if no overlap with NYC bbox
+              if (maxx < NYC_BBOX[0] or minx > NYC_BBOX[2]
+                      or maxy < NYC_BBOX[1] or miny > NYC_BBOX[3]):
+                  return
+              self.rows.append({
+                  "osm_id": w.id,
+                  "highway": hw,
+                  "name": w.tags.get("name"),
+                  "geometry": geom,
+              })
+
+      print("Parsing ways (locations=True wajib untuk build geometry)...")
+      h = StreetHandler()
+      h.apply_file("ny.osm.pbf", locations=True)
+
+      gdf = gpd.GeoDataFrame(h.rows, crs="EPSG:4326")
+      print(f"Drivable segments in NYC bbox: {len(gdf)}")
+      print(gdf["highway"].value_counts())
+
+      gdf.to_parquet("nyc_streets_drivable.parquet", index=False)
+      print("Done.")
+
+  - id: upload_to_gcs
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{ outputs.extract_drivable_streets.outputFiles['nyc_streets_drivable.parquet'] }}"
+    to: "gs://{{ vars.gcs_bucket }}/{{ vars.gcs_path }}"

@@ -288,6 +288,83 @@ Before adding scope, switching tools, or revisiting any decision — read this f
 **Rationale:** Flow 3 now produces 2 outputs (taxi zones reference GeoJSON + H3 grid Parquet) as a consequence of D-027 merge. Original name only reflected H3 output, misleading on full responsibility.
 **Updates required:** File naming section in DECISIONS.md to be updated.
 
+### D-031 | PostGIS Depth Deferred to Week 5-6 (Option 3)
+**Date:** 2026-06-05 (Day 4)
+**Decision:** Flow 2 ingest OSM streets ke GCS GeoParquet (pyosmium/GeoPandas),
+TIDAK direct-to-PostGIS. PostGIS depth dipindah ke Week 5-6 sebagai serving-layer work:
+  - osm2pgsql replay dari GCS GeoParquet → Supabase PostGIS
+  - Advanced spatial queries: ST_DWithin H3 cells ke nearest road,
+    street density per H3, spatial join streets × taxi zones
+  - pgvector OPTIONAL (D-PENDING-1): embedding street/neighborhood descriptors,
+    evaluate hanya jika Week 5 on-schedule
+**Rationale:** Preserve D-010 lake architecture (GCS → Spark → BQ → dbt → serve).
+  osm2pgsql output target = PostGIS table, tidak fit raw-zone GCS landing.
+  PostGIS gap closure tetap tercapai via serving layer, tanpa decision-retract D-010
+  dan tanpa scope explosion di Day 4. Opsi 2 (osm2pgsql di Flow 2) ditolak:
+  break lake pattern + 12-15jam scope + Supabase 500MB limit risk.
+**Supersedes:** D-019 amendment "osm2pgsql" (reverted to pyosmium primary)
+
+### D-032 | OSM Source: NY State Extract, Not US Northeast
+**Date:** 2026-06-05 (Day 4)
+**Decision:** Geofabrik New York state extract (465 MB) sebagai sumber OSM Flow 2,
+bukan US Northeast bundle (1.6 GB).
+URL: https://download.geofabrik.de/north-america/us/new-york-latest.osm.pbf
+**Rationale:** Northeast = NY + Boston + Pennsylvania, 3.5x lebih besar untuk data
+yang ~90% di luar scope. NY state sudah mencakup NYC, crop ke 5 borough via bbox.
+Bandwidth + memory + waktu proses turun signifikan. URL + size verified 2026-06-05.
+
+### D-033 | Flow 2 Filter: Drivable Highway Classes Only
+**Date:** 2026-06-05 (Day 4)
+**Decision:** Include hanya: motorway, trunk, primary, secondary, tertiary +
+semua _link variants, residential, unclassified, living_street.
+Exclude: footway, cycleway, path, pedestrian, steps, bridleway, track, service.
+**Rationale:** Taxi supply-demand = drivable network only. Footpath/cycleway
+meng-inflate street density per H3 di zona yang taxi tidak operate. Filter ini
+maps ke OSM functional road hierarchy = ekuivalen road-class logic GRAB routing.
+`service` (driveway, parking_aisle, alley) di-exclude sebagai noise.
+
+### D-034 | Flow 2 Spatial Clip: bbox v1, Polygon Refinement Deferred
+**Date:** 2026-06-05 (Day 4)
+**Decision:** Clip NY → NYC pakai bbox (-74.26, 40.49, -73.70, 40.92) di Flow 2 v1.
+Polygon clip presisi pakai nyc_taxi_zones.geojson = future refinement, bukan blocker.
+**Rationale:** bbox rectangular include sedikit edge NJ + water, tapi harmless untuk
+road data (tidak ada drivable way di air). Polygon clip lebih presisi tapi tambah
+GCS dependency di task — defer sampai terbukti perlu, hindari over-engineering v1.
+
+### D-035 | Flow 2 OOM Incident — Architectural Lesson + Fix
+**Date:** 2026-06-05 (Day 4)
+**Incident:** Flow 2 v1 (single Python task, 465 MB PBF + locations=True)
+triggered OOM mid-execution. Kestra JVM killed as collateral damage.
+Root cause: total Codespaces memory = OS (~1GB) + Kestra JVM (~800MB)
++ postgres (~200MB) + Python Docker task node cache (~3GB) = exceeds 8GB.
+**Key observation:** GCS write completed BEFORE Kestra crashed. Execution
+marked RUNNING (inconsistent state) but data landed correctly.
+**Why safe:** GCS object writes are atomic — file either exists complete
+or not at all, no partial write possible. Idempotent design (overwrite)
+made re-run safe regardless.
+**Fix (v2):** osmium-tool pre-crop to NYC bbox in beforeCommands, BEFORE
+Python task runs. NY state PBF (465 MB) → NYC PBF (~30-50 MB) via C++
+CLI. Python task memory: 3 GB → ~300 MB. No OOM.
+**Lesson:** Jupyter is NOT a reliable memory canary for Kestra Docker
+tasks. Jupyter runs in host process memory; Kestra adds JVM + postgres
+overhead before task container even starts.
+**Validated output:** 8,739,248 bytes, EPSG:4326, ~72K drivable segments.
+
+### D-036 | Kestra Deployment: Dev vs Production Pattern
+**Date:** 2026-06-05 (Day 4)
+**Current (portfolio):** Kestra + postgres + task containers co-located
+di Codespaces Docker Compose. Acceptable untuk development.
+**Production pattern:** Orchestrator resource-isolated dari task execution.
+Achieved dua cara:
+  1. Separate VM untuk orchestrator vs task workers (enterprise)
+  2. Task execution di-offload ke managed service (lo sudah implement
+     ini untuk Week 3: Kestra → Dataproc job submission. Spark cluster
+     berjalan terpisah di GCP, Kestra JVM tetap ringan.)
+**Why Flow 2 hit OOM:** Exception — heavy Python task jalan lokal
+(bukan managed service), co-located dengan Kestra. Fixed via osmium
+pre-crop (D-035). Future heavy local tasks: evaluate Cloud Run atau
+Dataproc custom container sebelum commit ke Python Script task.
+
 ## 2026-06-02 pipepline naming
 
 kestra/flows/
