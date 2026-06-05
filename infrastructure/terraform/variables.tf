@@ -32,3 +32,15 @@ variable "bq_dataset_dbt" {
   description = "BigQuery dbt Dev Dataset"
   default     = "geoops_dbt_dev"
 }
+
+variable "dataproc_cluster_name" {
+  description = "Dataproc cluster name"
+  type        = string
+  default     = "geoops-spark"
+}
+
+variable "dataproc_worker_count" {
+  description = "Number of Dataproc worker nodes (minimum 2)"
+  type        = number
+  default     = 2
+}

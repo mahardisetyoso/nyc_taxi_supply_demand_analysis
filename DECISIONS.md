@@ -365,6 +365,38 @@ Achieved dua cara:
 pre-crop (D-035). Future heavy local tasks: evaluate Cloud Run atau
 Dataproc custom container sebelum commit ke Python Script task.
 
+### D-038 | Dataproc Cluster Configuration v1
+**Date:** 2026-06-05 (Day 4, post-ingestion phase)
+**Decision:** Standard Spark cluster (non-HA, non-autoscaling) untuk Week 3 H3 enrichment.
+
+**Sizing:**
+- Master: 1 × n2-standard-2 (2 vCPU, 8 GB RAM)
+- Workers: 2 × n2-standard-2 (minimum Dataproc requirement)
+- Boot disk: 100 GB pd-standard per node
+- Estimated cost: ~$0.25/hour saat running
+
+**Software:**
+- Image: 2.2-debian12 (Spark 3.5, stable)
+- Optional component: JUPYTER (interactive debugging via Component Gateway)
+- Spark properties: AQE enabled (mitigasi data skew Manhattan H3 cells)
+
+**Cost protection:**
+- `idle_delete_ttl = 1800s` — cluster auto-destroy setelah 30 menit idle.
+  Mitigates "lupa shutdown" risk → max wasted billing = ~$0.12 per insiden.
+
+**Excluded from v1 (deferred decisions):**
+- Preemptible workers (D-PENDING-2): defer sampai job berjalan stable.
+  Adding eviction handling sebelum job logic validated = premature optimization.
+- Apache Sedona init action: defer. Sedona via `--packages` per job submission
+  cukup untuk Flow 4. Init action = berlaku saat Week 5-6 perlu advanced spatial.
+- Autoscaling policy: defer sampai workload behavior dipahami.
+
+**Rationale:** Portfolio scale doesn't justify HA master atau large worker pool.
+2-worker config cukup untuk 40M rows TLC + H3 enrichment via Sedona-less h3-py UDF.
+Component Gateway enables Spark UI debugging dari browser — penting untuk
+demonstrate troubleshooting di interview narrative ("I caught skewed partition
+via Spark UI lineage view").
+
 ## 2026-06-02 pipepline naming
 
 kestra/flows/
