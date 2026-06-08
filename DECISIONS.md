@@ -437,6 +437,49 @@ Filter criteria:
 - fare_amount BETWEEN 2.50 AND 500
 - total_amount BETWEEN 2.50 AND 500
 
+D-040 | Trip Filtering Strategy
+Resolution: Standard Clean (Opsi B)
+Criteria:
+  - pickup_datetime & dropoff_datetime NOT NULL
+  - dropoff_datetime > pickup_datetime
+  - Trip duration <= 180 menit (10,800 detik)
+  - PULocationID & DOLocationID NOT NULL, NOT IN (264, 265)
+  - passenger_count BETWEEN 1 AND 8  [dtype: double, cast dulu]
+  - trip_distance BETWEEN 0.1 AND 100
+  - fare_amount BETWEEN 2.50 AND 500
+  - total_amount BETWEEN 2.50 AND 500
+
+D-041 | H3 Indexing Approach
+Resolution: Broadcast join via lookup table
+  - Library: h3-py (konsisten dengan Flow 3)
+  - Data confirmed: NO coordinates — PULocationID & DOLocationID
+    adalah integer zone IDs, bukan lat/lng
+  - Approach: pre-build LocationID → h3_cell lookup dari
+    nyc_taxi_zones.geojson + h3_res8_nyc.parquet,
+    broadcast join ke trip data
+  - Apply ke: PULocationID → h3_pickup_res8
+              DOLocationID → h3_dropoff_res8
+  - Sedona: Rejected (overkill, wrong bottleneck)
+  D-041 ADDENDUM (dari prototype):
+- LocationID 56, 103 duplicate di GeoJSON → fix: drop_duplicates keep=first
+- LocationID 57, 105 tidak ada di GeoJSON → 36 rows dropped (0.001%)
+- Aggregation: groupby pickup/dropoff H3 secara independen, bukan nested
+
+D-042 | Aggregation Granularity
+Resolution: hour_of_day × day_of_week (168 buckets)
+  - Columns: h3_cell | day_of_week (0–6) | hour_of_day (0–23)
+  - Rationale: ops-relevant weekly pattern,
+    bukan daily average yang tidak actionable
+
+D-043 | Output Schema BigQuery
+Resolution: Row-level enriched
+  - Table: geoops_raw.yellow_trips_h3_enriched
+  - Type: 1 row = 1 trip (bukan pre-aggregated)
+  - New columns: h3_pickup_res8, h3_dropoff_res8,
+                 day_of_week, hour_of_day
+  - Partition: DATE(tpep_pickup_datetime)
+  - Clustering: h3_pickup_res8, h3_dropoff_res8
+  - Aggregation logic: diserahkan ke dbt (Week 4)
 ## 2026-06-02 pipepline naming
 
 kestra/flows/
