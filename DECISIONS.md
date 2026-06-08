@@ -397,6 +397,46 @@ Component Gateway enables Spark UI debugging dari browser — penting untuk
 demonstrate troubleshooting di interview narrative ("I caught skewed partition
 via Spark UI lineage view").
 
+### D-039 | Raster Component DROPPED from NYC Taxi Project
+**Date:** 2026-06-05 (Day 4)
+**Decision:** Tidak ada raster/elevation component di NYC Taxi
+Supply-Demand portfolio. Project tetap 100% vector-based
+(H3 cells + OSM streets + Taxi zones polygon).
+
+**Reasoning:**
+- Original justification (close Pano AI JD raster gap) sudah collapse —
+  Pano AI posting confirmed UNAVAILABLE June 2026.
+- Tidak ada analytical use case untuk raster di NYC flat geography
+  (elevation 0-50m, no meaningful topographic variation).
+- Force-fit raster tanpa use case = "checkbox feature," low portfolio signal,
+  high effort-to-value ratio.
+
+**Pivot positioning:** Portfolio positioning sebagai vector-DE specialist
+untuk class of geospatial roles (Mapbox, Esri, Carto, Foursquare, Overture,
+Uber/DoorDash geo teams, geospatial startups). 
+
+**Parked sebagai future portfolio project (BUKAN current scope):**
+Indonesia dynamic pricing portfolio. Identified industry problem:
+Grab/Gojek flat pricing tidak account untuk topography di highland routes
+(Puncak, Lembang, Dieng, Bromo, Toba access). Solution sketch: elevation
+per H3/geohash sebagai dynamic price multiplier.
+Re-evaluate post Week 8 NYC project completion.
+
+**Reference bookmarks (untuk future Indonesia project, BUKAN current):**
+- orofarne/scenic-routing-mcp — Valhalla scenic routing pattern
+- USGS 3DEP / NASA SRTM — DEM data sources
+- Apache Sedona raster module — Spark geospatial raster processing
+
+Filter criteria:
+- pickup_datetime IS NOT NULL AND dropoff_datetime IS NOT NULL
+- dropoff_datetime > pickup_datetime
+- DATEDIFF(dropoff, pickup) <= 180 menit
+- PULocationID/DOLocationID IS NOT NULL AND NOT IN (264, 265)
+- passenger_count BETWEEN 1 AND 8
+- trip_distance BETWEEN 0.1 AND 100
+- fare_amount BETWEEN 2.50 AND 500
+- total_amount BETWEEN 2.50 AND 500
+
 ## 2026-06-02 pipepline naming
 
 kestra/flows/
