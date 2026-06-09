@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_yellow_trips
+    description: >
+      Staging view of TLC Yellow Taxi 2023 enriched trips.
+      Filters rows with null H3 cells (<0.001% of data).
+    columns:
+      - name: h3_pickup_res8
+        description: "H3 resolution 8 cell for pickup. NYC has ~1,070 valid cells."
+        tests:
+          - not_null
+      - name: h3_dropoff_res8
+        description: "H3 resolution 8 cell for dropoff."
+        tests:
+          - not_null
+      - name: day_of_week
+        description: "0=Monday through 6=Sunday"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2, 3, 4, 5, 6]
+              quote: false
+      - name: hour_of_day
+        description: "Hour 0-23"
+        tests:
+          - not_null

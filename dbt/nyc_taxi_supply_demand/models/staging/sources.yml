@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: geoops_raw
+    database: hardy-geo-portofolio
+    schema: geoops_raw
+    tables:
+      - name: yellow_trips_h3_enriched
+        description: >
+          TLC Yellow Taxi 2023 full year enriched with H3 res8 cells via
+          broadcast join. 34,955,847 rows. Partitioned by DATE(tpep_pickup_datetime),
+          clustered by h3_pickup_res8, h3_dropoff_res8.
