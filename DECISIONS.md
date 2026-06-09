@@ -480,6 +480,114 @@ Resolution: Row-level enriched
   - Partition: DATE(tpep_pickup_datetime)
   - Clustering: h3_pickup_res8, h3_dropoff_res8
   - Aggregation logic: diserahkan ke dbt (Week 4)
+
+  # Day 6 Decisions — Flow 4 Production Implementation
+
+## D-044 | Pre-computed H3 Lookup (Cluster Dependency Strategy)
+
+**Date:** 2026-06-09
+**Status:** LOCKED
+**Context:** Dataproc cluster VMs have no external IP (org policy). pip install via initialization_action fails with `[Errno 101] Network is unreachable` on all 3 nodes (master + 2 workers). Libraries h3, geopandas, gcsfs only needed on driver for building 260-row lookup table.
+
+**Decision:** Pre-compute LocationID → H3 lookup as CSV in Codespaces (where geopandas/h3 are available), upload to GCS, PySpark reads plain CSV. Zero external dependencies on cluster.
+
+**Artifact:** `gs://hardy-geo-de-267342/raw/reference/location_h3_lookup.csv`
+- 260 rows (263 zones - 3 duplicates from LocationID 56/103)
+- Columns: LocationID (int), h3_res8 (string)
+- Generated via prototype notebook Cell 5-9: GeoPandas centroid → h3.latlng_to_cell
+
+**Production alternatives (documented, not implemented):**
+1. **Cloud NAT** — NAT gateway on VPC, VMs stay private but can reach internet. Standard enterprise pattern. ~$1/day.
+2. **Custom Dataproc Image** — Bake dependencies into OS image. Netflix/Spotify/Uber pattern. Zero boot-time install.
+3. **Private Artifact Registry** — Internal PyPI mirror inside VPC. Corporate standard (Artifactory/Nexus).
+4. **Pre-staged wheels on GCS** — Download .whl files, pip install --no-index. Air-gapped environments.
+
+**Why this is architecturally correct (not a shortcut):**
+- Separation of concerns: reference data preparation (Flow 3 domain) vs enrichment job (Flow 4 domain)
+- Lookup table is a static reference artifact — recomputing 260 rows at every cluster boot is waste
+- Same pattern used in production: dimension tables pre-built, not rebuilt per job
+
+---
+
+## D-045 | TLC Schema Evolution Handling (Per-Month Read + Union)
+
+**Date:** 2026-06-09
+**Status:** LOCKED
+**Context:** TLC changed Parquet schema mid-2023. Reading all 12 files with single `spark.read.parquet()` fails regardless of approach:
+- Default read: `Expected: double, Found: INT64` (passenger_count)
+- mergeSchema: `CANNOT_MERGE_INCOMPATIBLE_DATA_TYPE BIGINT and INT`
+- Explicit schema + disable vectorized reader: `MutableDouble cannot be cast to MutableLong`
+
+**Schema differences discovered:**
+
+| Column | Early 2023 | Late 2023 |
+|---|---|---|
+| VendorID | BIGINT | INT |
+| passenger_count | DOUBLE | BIGINT |
+| RatecodeID | DOUBLE | BIGINT |
+| PULocationID | BIGINT | INT |
+| DOLocationID | BIGINT | INT |
+| airport_fee | airport_fee | Airport_fee (case!) |
+
+**Decision:** Read each month separately, cast all columns to common types via `F.col().cast()`, then `unionByName`. This is the production pattern for schema evolution in multi-file Parquet datasets.
+
+```python
+COMMON_COLS = [
+    F.col("VendorID").cast("long"),
+    F.col("passenger_count").cast("double"),
+    F.col("PULocationID").cast("long"),
+    F.col("airport_fee").cast("double"),  # handles case mismatch
+    # ... etc
+]
+
+dfs = []
+for month in range(1, 13):
+    path = f"gs://{BUCKET}/raw/tlc_yellow/year=2023/month={month:02d}/*.parquet"
+    df_month = spark.read.parquet(path).select(COMMON_COLS)
+    dfs.append(df_month)
+
+df_raw = reduce(lambda a, b: a.unionByName(b), dfs)
+```
+
+**Why not caught in prototype:** Prototype only processed January 2023. Schema changes only appear when reading multiple months. This validates the principle: prototype on 1 month ≠ validated for 12 months.
+
+**Lesson:** For any multi-file Parquet ingestion from external sources, always inspect schema of ALL files before designing the read strategy.
+
+---
+
+## D-046 | BigQuery Connector JAR (Dataproc 2.2 Built-in)
+
+**Date:** 2026-06-09
+**Status:** LOCKED
+**Context:** Passing `--jars=gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.32.2.jar` at job submit caused `ServiceConfigurationError: BigQueryRelationProvider not a subtype`. Root cause: Dataproc image 2.2-debian12 already includes spark-bigquery-connector. Adding a second JAR creates classpath conflict (two versions of same class).
+
+**Decision:** Do NOT pass `--jars` for BigQuery connector when using Dataproc 2.2+. The pre-installed connector is sufficient.
+
+**Submit command (final):**
+```bash
+gcloud dataproc jobs submit pyspark \
+  gs://hardy-geo-de-267342/spark_jobs/flow4_h3_enrichment.py \
+  --cluster=geoops-spark \
+  --region=asia-southeast1 \
+  --project=hardy-geo-portofolio
+```
+
+---
+
+## Flow 4 Production Results
+
+**Job ID:** dde1578b9bd0415daf87c88cf9315d55
+**Runtime:** ~3 minutes (1 master + 2 workers, n2-standard-2)
+
+```
+Raw:      38,310,226 rows (12 months TLC Yellow 2023)
+Filtered: 34,956,609 (8.8% dropped via D-040)
+Final:    34,955,847 (762 null H3 dropped — LocationID 57/105)
+Output:   hardy-geo-portofolio.geoops_raw.yellow_trips_h3_enriched
+          Partition: DAY(tpep_pickup_datetime)
+          Cluster: h3_pickup_res8, h3_dropoff_res8
+```
+
 ## 2026-06-02 pipepline naming
 
 kestra/flows/
