@@ -1,0 +1,261 @@
+location_id,h3_res8,zone_name,borough
+1,882a1071e7fffff,Newark Airport,EWR
+2,882a103955fffff,Jamaica Bay,Queens
+3,882a10011dfffff,Allerton/Pelham Gardens,Bronx
+4,882a100d31fffff,Alphabet City,Manhattan
+5,882a1060e1fffff,Arden Heights,Staten Island
+6,882a10753dfffff,Arrochar/Fort Wadsworth,Staten Island
+7,882a100f31fffff,Astoria,Queens
+8,882a100f2bfffff,Astoria Park,Queens
+9,882a100525fffff,Auburndale,Queens
+10,882a103b69fffff,Baisley Park,Queens
+11,882a107467fffff,Bath Beach,Brooklyn
+12,882a107281fffff,Battery Park,Manhattan
+13,882a10728dfffff,Battery Park City,Manhattan
+14,882a10754bfffff,Bay Ridge,Brooklyn
+15,882a1000b5fffff,Bay Terrace/Fort Totten,Queens
+16,882a100567fffff,Bayside,Queens
+17,882a100d85fffff,Bedford,Brooklyn
+18,882a100123fffff,Bedford Park,Bronx
+19,882a100519fffff,Bellerose,Queens
+20,882a100135fffff,Belmont,Bronx
+21,882a10740dfffff,Bensonhurst East,Brooklyn
+22,882a107461fffff,Bensonhurst West,Brooklyn
+23,882a10604bfffff,Bloomfield/Emerson Hill,Staten Island
+24,882a100889fffff,Bloomingdale,Manhattan
+25,882a10729bfffff,Boerum Hill,Brooklyn
+26,882a107711fffff,Borough Park,Brooklyn
+27,882a1076bbfffff,Breezy Point/Fort Tilden/Riis Beach,Queens
+28,882a100e81fffff,Briarwood/Jamaica Hills,Queens
+29,882a107419fffff,Brighton Beach,Brooklyn
+30,882a103919fffff,Broad Channel,Queens
+31,882a100131fffff,Bronx Park,Bronx
+32,882a100139fffff,Bronxdale,Bronx
+33,882a1072d7fffff,Brooklyn Heights,Brooklyn
+34,882a1072dbfffff,Brooklyn Navy Yard,Brooklyn
+35,882a100d9bfffff,Brownsville,Brooklyn
+36,882a100dcbfffff,Bushwick North,Brooklyn
+37,882a100dc3fffff,Bushwick South,Brooklyn
+38,882a100581fffff,Cambria Heights,Queens
+39,882a107655fffff,Canarsie,Brooklyn
+40,882a107293fffff,Carroll Gardens,Brooklyn
+41,882a1008ddfffff,Central Harlem,Manhattan
+42,882a100ab5fffff,Central Harlem North,Manhattan
+43,882a100895fffff,Central Park,Manhattan
+44,882a106193fffff,Charleston/Tottenville,Staten Island
+45,882a1072c3fffff,Chinatown,Manhattan
+46,882a100003fffff,City Island,Bronx
+47,882a100ad5fffff,Claremont/Bathgate,Bronx
+48,882a100d65fffff,Clinton East,Manhattan
+49,882a100dabfffff,Clinton Hill,Brooklyn
+50,882a107259fffff,Clinton West,Manhattan
+51,882a100151fffff,Co-Op City,Bronx
+52,882a107291fffff,Cobble Hill,Brooklyn
+53,882a100e61fffff,College Point,Queens
+54,882a107291fffff,Columbia Street,Brooklyn
+55,882a107439fffff,Coney Island,Brooklyn
+56,882a100c4bfffff,Corona,Queens
+58,882a1001c9fffff,Country Club,Bronx
+59,882a100ad5fffff,Crotona Park,Bronx
+60,882a100ad1fffff,Crotona Park East,Bronx
+61,882a100d95fffff,Crown Heights North,Brooklyn
+62,882a100dbbfffff,Crown Heights South,Brooklyn
+63,882a100ce3fffff,Cypress Hills,Brooklyn
+64,882a100547fffff,Douglaston,Queens
+65,882a1072d3fffff,Downtown Brooklyn/MetroTech,Brooklyn
+66,882a1072d1fffff,DUMBO/Vinegar Hill,Brooklyn
+67,882a107733fffff,Dyker Heights,Brooklyn
+68,882a107253fffff,East Chelsea,Manhattan
+69,882a100a83fffff,East Concourse/Concourse Village,Bronx
+70,882a100f1bfffff,East Elmhurst,Queens
+71,882a107663fffff,East Flatbush/Farragut,Brooklyn
+72,882a107645fffff,East Flatbush/Remsen Village,Brooklyn
+73,882a100e1dfffff,East Flushing,Queens
+74,882a1008d9fffff,East Harlem North,Manhattan
+75,882a1008d3fffff,East Harlem South,Manhattan
+76,882a100cbdfffff,East New York,Brooklyn
+77,882a100ca1fffff,East New York/Pennsylvania Avenue,Brooklyn
+78,882a100addfffff,East Tremont,Bronx
+79,882a100d35fffff,East Village,Manhattan
+80,882a100d13fffff,East Williamsburg,Brooklyn
+81,882a100155fffff,Eastchester,Bronx
+82,882a100c47fffff,Elmhurst,Queens
+83,882a100c63fffff,Elmhurst/Maspeth,Queens
+84,882a1060abfffff,Eltingville/Annadale/Prince's Bay,Staten Island
+85,882a107667fffff,Erasmus,Brooklyn
+86,882a103855fffff,Far Rockaway,Queens
+87,882a107289fffff,Financial District North,Manhattan
+88,882a107281fffff,Financial District South,Manhattan
+89,882a10762dfffff,Flatbush/Ditmas Park,Brooklyn
+90,882a100d25fffff,Flatiron,Manhattan
+91,882a107607fffff,Flatlands,Brooklyn
+92,882a100e07fffff,Flushing,Queens
+93,882a100e37fffff,Flushing Meadows-Corona Park,Queens
+94,882a100ac1fffff,Fordham South,Bronx
+95,882a100c53fffff,Forest Hills,Queens
+96,882a100ce9fffff,Forest Park/Highland Park,Queens
+97,882a100dadfffff,Fort Greene,Brooklyn
+98,882a100535fffff,Fresh Meadows,Queens
+99,882a106003fffff,Freshkills Park,Staten Island
+100,882a100d2dfffff,Garment District,Manhattan
+101,882a10055bfffff,Glen Oaks,Queens
+102,882a100c17fffff,Glendale,Queens
+103,882a1072b5fffff,Governor's Island/Ellis Island/Liberty Island,Manhattan
+106,882a10774dfffff,Gowanus,Brooklyn
+107,882a100d23fffff,Gramercy,Manhattan
+108,882a107403fffff,Gravesend,Brooklyn
+109,882a1060cbfffff,Great Kills,Staten Island
+110,882a1062b3fffff,Great Kills Park,Staten Island
+111,882a107709fffff,Green-Wood Cemetery,Brooklyn
+112,882a100d15fffff,Greenpoint,Brooklyn
+113,882a100d27fffff,Greenwich Village North,Manhattan
+114,882a1072c9fffff,Greenwich Village South,Manhattan
+115,882a10752dfffff,Grymes Hill/Clifton,Staten Island
+116,882a100aa3fffff,Hamilton Heights,Manhattan
+117,882a10382bfffff,Hammels/Arverne,Queens
+118,882a1062e1fffff,Heartland Village/Todt Hill,Staten Island
+119,882a100a85fffff,Highbridge,Bronx
+120,882a100ae3fffff,Highbridge Park,Manhattan
+121,882a100ec5fffff,Hillcrest/Pomonok,Queens
+122,882a1005e5fffff,Hollis,Queens
+123,882a107455fffff,Homecrest,Brooklyn
+124,882a100c99fffff,Howard Beach,Queens
+125,882a1072c5fffff,Hudson Sq,Manhattan
+126,882a100f4dfffff,Hunts Point,Bronx
+127,882a100a13fffff,Inwood,Manhattan
+128,882a100a15fffff,Inwood Hill Park,Manhattan
+129,882a100f13fffff,Jackson Heights,Queens
+130,882a100e8bfffff,Jamaica,Queens
+131,882a100eddfffff,Jamaica Estates,Queens
+132,882a103b03fffff,JFK Airport,Queens
+133,882a107757fffff,Kensington,Brooklyn
+134,882a100eabfffff,Kew Gardens,Queens
+135,882a100ee1fffff,Kew Gardens Hills,Queens
+136,882a100acdfffff,Kingsbridge Heights,Bronx
+137,882a100d2bfffff,Kips Bay,Manhattan
+138,882a100f57fffff,LaGuardia Airport,Queens
+139,882a1005b1fffff,Laurelton,Queens
+140,882a100d45fffff,Lenox Hill East,Manhattan
+141,882a100d69fffff,Lenox Hill West,Manhattan
+142,882a1008bbfffff,Lincoln Square East,Manhattan
+143,882a1008b1fffff,Lincoln Square West,Manhattan
+144,882a1072c1fffff,Little Italy/NoLiTa,Manhattan
+145,882a100d09fffff,Long Island City/Hunters Point,Queens
+146,882a100d43fffff,Long Island City/Queens Plaza,Queens
+147,882a100a91fffff,Longwood,Bronx
+148,882a1072cbfffff,Lower East Side,Manhattan
+149,882a107637fffff,Madison,Brooklyn
+150,882a1076a5fffff,Manhattan Beach,Brooklyn
+151,882a10088bfffff,Manhattan Valley,Manhattan
+152,882a1008c9fffff,Manhattanville,Manhattan
+153,882a100a19fffff,Marble Hill,Manhattan
+154,882a1076c7fffff,Marine Park/Floyd Bennett Field,Brooklyn
+155,882a107615fffff,Marine Park/Mill Basin,Brooklyn
+156,882a10622dfffff,Mariners Harbor,Staten Island
+157,882a100c2bfffff,Maspeth,Queens
+158,882a10721bfffff,Meatpacking/West Village West,Manhattan
+159,882a100a95fffff,Melrose South,Bronx
+160,882a100c03fffff,Middle Village,Queens
+161,882a100d67fffff,Midtown Center,Manhattan
+162,882a100d63fffff,Midtown East,Manhattan
+163,882a100d6dfffff,Midtown North,Manhattan
+164,882a100d2dfffff,Midtown South,Manhattan
+165,882a107449fffff,Midwood,Brooklyn
+166,882a1008c3fffff,Morningside Heights,Manhattan
+167,882a100a9dfffff,Morrisania/Melrose,Bronx
+168,882a100f6dfffff,Mott Haven/Port Morris,Bronx
+169,882a100ac7fffff,Mount Hope,Bronx
+170,882a100d29fffff,Murray Hill,Manhattan
+171,882a100e55fffff,Murray Hill-Queens,Queens
+172,882a10628bfffff,New Dorp/Midland Beach,Staten Island
+173,882a100c49fffff,North Corona,Queens
+174,882a100129fffff,Norwood,Bronx
+175,882a100507fffff,Oakland Gardens,Queens
+176,882a1062b9fffff,Oakwood,Staten Island
+177,882a100d99fffff,Ocean Hill,Brooklyn
+178,882a10744dfffff,Ocean Parkway South,Brooklyn
+179,882a100f23fffff,Old Astoria,Queens
+180,882a100cd5fffff,Ozone Park,Queens
+181,882a107741fffff,Park Slope,Brooklyn
+182,882a1001e1fffff,Parkchester,Bronx
+183,882a1001cdfffff,Pelham Bay,Bronx
+184,882a100067fffff,Pelham Bay Park,Bronx
+185,882a100117fffff,Pelham Parkway,Bronx
+186,882a100d2dfffff,Penn Station/Madison Sq West,Manhattan
+187,882a106205fffff,Port Richmond,Staten Island
+188,882a100db3fffff,Prospect-Lefferts Gardens,Brooklyn
+189,882a100da3fffff,Prospect Heights,Brooklyn
+190,882a10775dfffff,Prospect Park,Brooklyn
+191,882a1005e9fffff,Queens Village,Queens
+192,882a100e17fffff,Queensboro Hill,Queens
+193,882a100d41fffff,Queensbridge/Ravenswood,Queens
+194,882a100f67fffff,Randalls Island,Manhattan
+195,882a107769fffff,Red Hook,Brooklyn
+196,882a100c55fffff,Rego Park,Queens
+197,882a100eb5fffff,Richmond Hill,Queens
+198,882a100c31fffff,Ridgewood,Queens
+199,882a100f43fffff,Rikers Island,Bronx
+200,882a100a5dfffff,Riverdale/North Riverdale/Fieldston,Bronx
+201,882a1039e1fffff,Rockaway Park,Queens
+202,882a100d45fffff,Roosevelt Island,Manhattan
+203,882a103a65fffff,Rosedale,Queens
+204,882a1060adfffff,Rossville/Woodrow,Staten Island
+205,882a1005a1fffff,Saint Albans,Queens
+206,882a10625dfffff,Saint George/New Brighton,Staten Island
+207,882a100f15fffff,Saint Michaels Cemetery/Woodside,Queens
+208,882a1001d5fffff,Schuylerville/Edgewater Park,Bronx
+209,882a107289fffff,Seaport,Manhattan
+210,882a10745bfffff,Sheepshead Bay,Brooklyn
+211,882a1072c1fffff,SoHo,Manhattan
+212,882a1001adfffff,Soundview/Bruckner,Bronx
+213,882a1001abfffff,Soundview/Castle Hill,Bronx
+214,882a1062cbfffff,South Beach/Dongan Hills,Staten Island
+215,882a100e91fffff,South Jamaica,Queens
+216,882a103b65fffff,South Ozone Park,Queens
+217,882a100de1fffff,South Williamsburg,Brooklyn
+218,882a103b41fffff,Springfield Gardens North,Queens
+219,882a103b5dfffff,Springfield Gardens South,Queens
+220,882a100a19fffff,Spuyten Duyvil/Kingsbridge,Bronx
+221,882a107563fffff,Stapleton,Staten Island
+222,882a100cb7fffff,Starrett City,Brooklyn
+223,882a100f07fffff,Steinway,Queens
+224,882a100d3dfffff,Stuy Town/Peter Cooper Village,Manhattan
+225,882a100d8bfffff,Stuyvesant Heights,Brooklyn
+226,882a100d53fffff,Sunnyside,Queens
+227,882a107707fffff,Sunset Park East,Brooklyn
+228,882a107705fffff,Sunset Park West,Brooklyn
+229,882a100d6bfffff,Sutton Place/Turtle Bay North,Manhattan
+230,882a100d65fffff,Times Sq/Theatre District,Manhattan
+231,882a1072c7fffff,TriBeCa/Civic Center,Manhattan
+232,882a100d37fffff,Two Bridges/Seward Park,Manhattan
+233,882a100d63fffff,UN/Turtle Bay South,Manhattan
+234,882a100d21fffff,Union Sq,Manhattan
+235,882a100aebfffff,University Heights/Morris Heights,Bronx
+236,882a100891fffff,Upper East Side North,Manhattan
+237,882a100d69fffff,Upper East Side South,Manhattan
+238,882a100883fffff,Upper West Side North,Manhattan
+239,882a1008b9fffff,Upper West Side South,Manhattan
+240,882a100165fffff,Van Cortlandt Park,Bronx
+241,882a100125fffff,Van Cortlandt Village,Bronx
+242,882a1001e9fffff,Van Nest/Morris Park,Bronx
+243,882a100ae1fffff,Washington Heights North,Manhattan
+244,882a100aa9fffff,Washington Heights South,Manhattan
+245,882a106251fffff,West Brighton,Staten Island
+246,882a107253fffff,West Chelsea/Hudson Yards,Manhattan
+247,882a100a87fffff,West Concourse,Bronx
+248,882a100adbfffff,West Farms/Bronx River,Bronx
+249,882a1072cdfffff,West Village,Manhattan
+250,882a1001e3fffff,Westchester Village/Unionport,Bronx
+251,882a106203fffff,Westerleigh,Staten Island
+252,882a100e45fffff,Whitestone,Queens
+253,882a100e2bfffff,Willets Point,Queens
+254,882a10010dfffff,Williamsbridge/Olinville,Bronx
+255,882a100d3bfffff,Williamsburg (North Side),Brooklyn
+256,882a100dedfffff,Williamsburg (South Side),Brooklyn
+257,882a107755fffff,Windsor Terrace,Brooklyn
+258,882a100cc1fffff,Woodhaven,Queens
+259,882a100145fffff,Woodlawn/Wakefield,Bronx
+260,882a100c65fffff,Woodside,Queens
+261,882a107289fffff,World Trade Center,Manhattan
+262,882a10089bfffff,Yorkville East,Manhattan
+263,882a10089bfffff,Yorkville West,Manhattan
