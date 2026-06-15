@@ -4,43 +4,84 @@ with gap as (
     select * from {{ ref('int_supply_demand_gap') }}
 ),
 
-zone_summary as (
+-- Aggregate TOTALS first, then compute rates from totals.
+-- This is "rate of totals", NOT "average of rates" — robust to sparse buckets.
+zone_totals as (
     select
         h3_cell,
-        approx_quantiles(supply_demand_ratio, 2)[offset(1)]   as median_supply_demand_ratio,
-        round(avg(supply_demand_ratio), 4)                    as avg_supply_demand_ratio,
-        round(avg(unmet_demand_rate), 4)                      as avg_unmet_demand_rate,
-        sum(demand_trips)                                     as total_demand_trips,
-        sum(supply_trips)                                     as total_supply_trips,
-        round(avg(demand_trips), 1)                           as avg_hourly_demand,
-        round(avg(supply_trips), 1)                           as avg_hourly_supply,
-        count(*)                                              as active_time_buckets,
-        countif(supply_demand_ratio < 1.0)                    as undersupplied_buckets,
-        round(
-            safe_divide(
-                countif(supply_demand_ratio < 1.0),
-                count(*)
-            ), 4
-        )                                                     as undersupply_frequency
+        sum(demand_trips)                            as total_demand_trips,
+        sum(supply_trips)                            as total_supply_trips,
+        count(*)                                     as active_time_buckets,
+        countif(supply_trips < demand_trips)         as undersupplied_buckets
     from gap
-    where demand_trips > 0
     group by h3_cell
 ),
 
--- Filter: minimum 500 demand trips to exclude statistical noise
--- Low-volume cells (< 500 trips/year) produce misleading unmet_demand_rate
+-- Minimum 500 demand trips/year to exclude statistical noise.
 significant_zones as (
-    select * from zone_summary
+    select * from zone_totals
     where total_demand_trips >= 500
+),
+
+zone_metrics as (
+    select
+        h3_cell,
+        total_demand_trips,
+        total_supply_trips,
+
+        -- Zone-level supply/demand ratio from totals.
+        -- >1 oversupplied, <1 undersupplied, =1 balanced.
+        round(safe_divide(total_supply_trips, total_demand_trips), 4)
+            as supply_demand_ratio,
+
+        -- Unmet demand rate from totals, clamped [0,1].
+        -- Only positive when demand > supply (genuine shortfall).
+        round(greatest(0.0, least(1.0,
+            safe_divide(
+                total_demand_trips - total_supply_trips,
+                total_demand_trips
+            )
+        )), 4)                                        as unmet_demand_rate,
+
+        -- Oversupply ratio: how many extra supply units per demand unit.
+        -- 0 when undersupplied/balanced. Separate metric, separate meaning.
+        round(greatest(0.0,
+            safe_divide(
+                total_supply_trips - total_demand_trips,
+                total_demand_trips
+            )
+        ), 4)                                         as oversupply_ratio,
+
+        -- Share of time-buckets that were undersupplied.
+        round(safe_divide(undersupplied_buckets, active_time_buckets), 4)
+            as undersupply_frequency,
+
+        active_time_buckets,
+        undersupplied_buckets
+    from significant_zones
+),
+
+classified as (
+    select
+        *,
+        -- Three-way classification with justified thresholds.
+        -- BALANCED band = ±10% (ratio 0.9–1.1) — standard ops tolerance
+        -- for supply matching demand. Outside it = action needed.
+        case
+            when supply_demand_ratio < 0.9  then 'UNDERSUPPLIED'
+            when supply_demand_ratio > 1.1  then 'OVERSUPPLIED'
+            else 'BALANCED'
+        end                                           as zone_status
+    from zone_metrics
 ),
 
 ranked as (
     select
         *,
         rank() over (
-            order by avg_unmet_demand_rate desc nulls last
-        )                                                     as gap_rank
-    from significant_zones
+            order by unmet_demand_rate desc, total_demand_trips desc
+        )                                             as gap_rank
+    from classified
 )
 
 select * from ranked

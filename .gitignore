@@ -45,3 +45,4 @@ Thumbs.db
 
 # Data output files — stored in GCS, not git
 *.parquet
+logs/

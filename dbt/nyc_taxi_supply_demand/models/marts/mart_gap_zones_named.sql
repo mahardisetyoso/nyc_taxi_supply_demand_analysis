@@ -1,8 +1,4 @@
-{{
-    config(
-        materialized='table'
-    )
-}}
+{{ config(materialized='table') }}
 
 with gap_zones as (
     select * from {{ ref('mart_gap_zones') }}
@@ -12,8 +8,8 @@ zone_lookup as (
     select * from {{ ref('location_h3_zone_lookup') }}
 ),
 
--- Deduplicate: satu H3 cell bisa overlap multiple TLC zones
--- Ambil zone dengan location_id terkecil sebagai primary zone
+-- Deduplicate: one H3 cell can overlap multiple TLC zones.
+-- Take smallest location_id as the primary zone (D-053).
 zone_primary as (
     select
         h3_res8,
@@ -33,13 +29,16 @@ final as (
         z.borough,
         g.total_demand_trips,
         g.total_supply_trips,
-        g.avg_supply_demand_ratio,
-        g.avg_unmet_demand_rate,
+        g.supply_demand_ratio,
+        g.unmet_demand_rate,
+        g.oversupply_ratio,
+        g.zone_status,
         g.undersupply_frequency,
+        g.active_time_buckets,
         g.gap_rank
     from gap_zones g
     left join zone_primary z
-        on g.h3_cell = z.h3_res8
+        on  g.h3_cell = z.h3_res8
         and z.rn = 1
 )
 

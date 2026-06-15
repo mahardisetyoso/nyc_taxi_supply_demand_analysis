@@ -595,3 +595,30 @@ kestra/flows/
 ├── flow_02_osm_pbf_to_gcs.yaml              ← raw layer (TBD)
 ├── flow_03_taxi_zones_and_h3_grid.yaml      ← raw + derived (Day 3)
 └── flow_04_spark_h3_enrichment.yaml         ← transform layer (later)
+## D-055 — Rate aggregation: aggregate totals, never average ratios
+
+**Context:** mart_gap_zones produced avg_unmet_demand_rate down to -41.26
+for 171/185 zones. Map rendered all-red; KPI "185 undersupplied" was false.
+
+**Root cause:** `avg(unmet_demand_rate)` averaged per-bucket ratios. Buckets
+with demand≈0 produced extreme rates (e.g. demand=1, supply=42 → rate=-41)
+that poisoned the zone average. The formula was mathematically correct per
+bucket but statistically invalid when averaged across buckets.
+
+**Decision:** Compute zone-level rates as "rate of totals":
+`safe_divide(sum(demand) - sum(supply), sum(demand))`, NOT `avg(rate)`.
+Split into three honest metrics: unmet_demand_rate [0,1],
+supply_demand_ratio, oversupply_ratio. zone_status uses ±10% band
+(0.9–1.1 ratio = BALANCED), replacing the magic-number threshold `-5`.
+
+**Scope correction:** mart now retains all 185 zones with correct
+classification (14 UNDERSUPPLIED, ~52 BALANCED, ~119 OVERSUPPLIED).
+Insight reframed: misallocation story (oversupply coexists with shortfall),
+not "185 zones need taxis".
+
+**Guardrail:** dbt_utils.accepted_range tests on unmet_demand_rate [0,1]
+and supply_demand_ratio [0,∞) block regression at build time.
+
+**Principle:** Never average a ratio. Aggregate numerator and denominator
+separately, then divide. Validate metric output range before shipping —
+a metric that renders is not a metric that is correct.

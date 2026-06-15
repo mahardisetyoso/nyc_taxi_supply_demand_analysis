@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: mart_gap_zones
+    columns:
+      - name: unmet_demand_rate
+        tests:
+          - not_null
+      - name: supply_demand_ratio
+        tests:
+          - not_null
+      - name: zone_status
+        tests:
+          - accepted_values:
+              values: ['UNDERSUPPLIED', 'OVERSUPPLIED', 'BALANCED']
