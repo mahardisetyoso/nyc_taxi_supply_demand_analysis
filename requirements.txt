@@ -1,0 +1,14 @@
+dbt-core
+dbt-bigquery
+streamlit
+pydeck
+pandas
+psycopg2-binary
+google-cloud-bigquery
+google-cloud-storage
+h3
+geopandas
+shapely
+requests
+db-dtypes
+pyarrow
