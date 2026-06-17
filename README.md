@@ -5,7 +5,7 @@
 An end-to-end geospatial data pipeline that quantifies the supply–demand mismatch across New York City at H3 hexagon resolution, using a full year of TLC Yellow Taxi trip records.
 
 ![Dashboard overview](asset/dashboard_kpi.jpg)
-
+**[🚀 Live Dashboard →](https://nyctaxisupplydemandanalysis.streamlit.app)**
 ---
 
 ## TL;DR
