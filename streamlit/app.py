@@ -89,6 +89,8 @@ def load_transit():
 
 with st.spinner("Loading zone data..."):
     df = load_zones()
+    
+
 
 undersupplied = df[df['zone_status'] == 'UNDERSUPPLIED']
 balanced = df[df['zone_status'] == 'BALANCED']
@@ -125,7 +127,7 @@ with k4:
 with k5:
     st.markdown(f'<div class="kpi-card"><div class="kpi-label">🔵 Oversupplied</div><div class="kpi-value">{len(oversupplied)}</div><div class="kpi-delta neutral">{len(oversupplied)/len(df)*100:.0f}% — fleet rebalance needed</div></div>', unsafe_allow_html=True)
 
-st.markdown('<div style="font-size:11px; color:#64748b; margin-top:8px; padding:6px 12px; background:#111827; border:1px solid #1e2433; border-radius:6px; display:inline-block;">📊 Data: NYC TLC Yellow Taxi Trip Records · Jan 1 – Dec 31, 2023 · 12 months · Source: NYC TLC Trip Record Data" (CloudFront)</div>', unsafe_allow_html=True)
+st.markdown('<div style="font-size:11px; color:#64748b; margin-top:8px; padding:6px 12px; background:#111827; border:1px solid #1e2433; border-radius:6px; display:inline-block;">📊 Data: NYC TLC Yellow Taxi Trip Records · Jan 1 – Dec 31, 2023 · 12 months · Source: NYC TLC Trip Record Data (CloudFront)</div>', unsafe_allow_html=True)
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
 # Sidebar
@@ -157,27 +159,76 @@ st.sidebar.markdown('<div class="section-title" style="margin-top:20px;">Map Col
 # Main: Map + Insights
 map_col, insight_col = st.columns([3, 1])
 
-STATUS_COLORS = {"UNDERSUPPLIED": [220,30,30,200], "BALANCED": [234,179,8,160], "OVERSUPPLIED": [30,120,220,100]}
+STATUS_COLORS = {
+    "UNDERSUPPLIED": [220, 30, 30, 200],
+    "BALANCED":      [234, 179, 8, 160],
+    "OVERSUPPLIED":  [30, 120, 220, 100]
+}
+
+# 2D — flat list of dicts, geometry sebagai field (bukan GeoJSON FeatureCollection)
 features_2d = []
 for _, row in filtered.iterrows():
-    if not row['geom_json']: continue
-    features_2d.append({"type": "Feature", "geometry": json.loads(row['geom_json']),
-        "properties": {"zone": row['zone_name'] or "Unknown", "borough": row['borough'] or "Unknown",
-            "status": row['zone_status'], "revenue_loss": f"${float(row['estimated_revenue_loss_usd'] or 0):,.0f}",
-            "unmet_rate": f"{float(row['unmet_demand_rate'] or 0):.1%}",
-            "ratio": f"{float(row['supply_demand_ratio'] or 0):.2f}",
-            "fill_color": STATUS_COLORS.get(row['zone_status'], [128,128,128,100])}})
+    if not row['geom_json']:
+        continue
+    color = STATUS_COLORS.get(row['zone_status'], [128, 128, 128, 100])
+    features_2d.append({
+        "geometry":     json.loads(row['geom_json']),
+        "zone":         row['zone_name'] or "Unknown",
+        "borough":      row['borough'] or "Unknown",
+        "status":       row['zone_status'],
+        "revenue_loss": f"${float(row['estimated_revenue_loss_usd'] or 0):,.0f}",
+        "unmet_rate":   f"{float(row['unmet_demand_rate'] or 0):.1%}",
+        "ratio":        f"{float(row['supply_demand_ratio'] or 0):.2f}",
+        "fill_color":   color,
+    })
 
-layer_2d = pdk.Layer("GeoJsonLayer", data={"type": "FeatureCollection", "features": features_2d},
-    stroked=True, filled=True, extruded=False, get_fill_color="properties.fill_color",
-    get_line_color=[255,255,255,40], get_line_width=20, pickable=True, auto_highlight=True)
+layer_2d = pdk.Layer(
+    "GeoJsonLayer",
+    data=features_2d,          # list of dicts, bukan FeatureCollection
+    stroked=True,
+    filled=True,
+    extruded=False,
+    get_fill_color="fill_color",
+    get_line_color=[255, 255, 255, 40],
+    get_line_width=20,
+    pickable=True,
+    auto_highlight=True,
+    highlight_color=[255, 255, 255, 50],
+)
 
-tooltip_2d = {"html": "<div style='font-family:sans-serif;font-size:13px;'><b style='font-size:14px'>{properties.zone}</b><br/><span style='color:#94a3b8'>Borough:</span> {properties.borough}<br/><span style='color:#94a3b8'>Status:</span> <b>{properties.status}</b><br/><span style='color:#94a3b8'>S/D Ratio:</span> {properties.ratio}<br/><span style='color:#94a3b8'>Revenue Loss:</span> <b style='color:#f87171'>{properties.revenue_loss}</b><br/><span style='color:#94a3b8'>Unmet Rate:</span> {properties.unmet_rate}</div>",
-    "style": {"backgroundColor": "#1a1f2e", "color": "#e2e8f0", "borderRadius": "8px", "padding": "10px", "border": "1px solid #2d3748"}}
+# Tooltip 2D — flat fields, TANPA properties.
+tooltip_2d = {
+    "html": """<div style='font-family:sans-serif;font-size:13px;'>
+        <b style='font-size:14px'>{zone}</b><br/>
+        <span style='color:#94a3b8'>Borough:</span> {borough}<br/>
+        <span style='color:#94a3b8'>Status:</span> <b>{status}</b><br/>
+        <span style='color:#94a3b8'>S/D Ratio:</span> {ratio}<br/>
+        <span style='color:#94a3b8'>Revenue Loss:</span> <b style='color:#f87171'>{revenue_loss}</b><br/>
+        <span style='color:#94a3b8'>Unmet Rate:</span> {unmet_rate}
+    </div>""",
+    "style": {
+        "backgroundColor": "#1a1f2e",
+        "color": "#e2e8f0",
+        "borderRadius": "8px",
+        "padding": "10px",
+        "border": "1px solid #2d3748"
+    }
+}
 
-tooltip_3d = {"html": "<div style='font-family:sans-serif;font-size:13px;'><b style='font-size:14px'>{zone}</b><br/><span style='color:#94a3b8'>Borough:</span> {borough}<br/><span style='color:#94a3b8'>Revenue Loss:</span> <b style='color:#f87171'>{revenue_loss}</b><br/><span style='color:#94a3b8'>Unmet Rate:</span> {unmet_rate}</div>",
-    "style": {"backgroundColor": "#1a1f2e", "color": "#e2e8f0", "borderRadius": "8px", "padding": "10px"}}
-
+tooltip_3d = {
+    "html": """<div style='font-family:sans-serif;font-size:13px;'>
+        <b style='font-size:14px'>{zone}</b><br/>
+        <span style='color:#94a3b8'>Borough:</span> {borough}<br/>
+        <span style='color:#94a3b8'>Revenue Loss:</span> <b style='color:#f87171'>{revenue_loss}</b><br/>
+        <span style='color:#94a3b8'>Unmet Rate:</span> {unmet_rate}
+    </div>""",
+    "style": {
+        "backgroundColor": "#1a1f2e",
+        "color": "#e2e8f0",
+        "borderRadius": "8px",
+        "padding": "10px"
+    }
+}
 with map_col:
     view_mode = st.radio("Map View", ["2D Overview", "3D Revenue Loss"], horizontal=True, label_visibility="collapsed")
 
