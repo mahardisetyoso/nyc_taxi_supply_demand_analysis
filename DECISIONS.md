@@ -622,3 +622,22 @@ and supply_demand_ratio [0,∞) block regression at build time.
 **Principle:** Never average a ratio. Aggregate numerator and denominator
 separately, then divide. Validate metric output range before shipping —
 a metric that renders is not a metric that is correct.
+
+D-055 — Rate aggregation: aggregate totals, never average ratios
+
+
+Problem: avg(unmet_demand_rate) produced -41.26 for oversupplied zones. Buckets with demand≈0 (e.g. demand=1, supply=42 → rate=-41) poisoned the zone average.
+Fix: safe_divide(sum(demand) - sum(supply), sum(demand)) — rate of totals, not average of rates.
+Three metrics split: unmet_demand_rate [0,1], supply_demand_ratio, oversupply_ratio.
+zone_status: ±10% band (ratio 0.9–1.1 = BALANCED), replacing magic threshold -5.
+Revenue loss: restricted to UNDERSUPPLIED only.
+Guardrail: dbt tests block regression (range [0,1] + accepted_values).
+
+
+D-056 — Local dev environment (Windows VS Code)
+
+
+Trigger: GitHub Codespaces free quota (120 core-hrs/mo) exhausted mid-month.
+Decision: Migrate to local Windows VS Code instead of paying or waiting for reset.
+Setup: venv (not conda base), requirements.txt, profiles.yml (oauth via ADC), .env with python-dotenv.
+Rationale: Reproducible local env is production-grade skill + portfolio signal.
