@@ -87,6 +87,11 @@ https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-{01..12}.pa
 - **LaGuardia Airport:** ~$15.0M, surfaced only after the metric fix.
 - **Garment District (within 800m of Penn Station):** ~$11.4M — a commuter-exit gap revealed by `ST_Buffer` proximity analysis.
 - **By borough:** Queens ~$44.0M (airport-driven), Manhattan ~$37.6M (commuter-driven). Brooklyn and the Bronx show no undersupplied zones.
+- **Road access is not the constraint.** Undersupplied zones average 113.8 road 
+  segments vs 95.1 for oversupplied — taxis avoid the most accessible, 
+  highest-demand zones. LaGuardia (9 segments, $15M lost) and JFK (192 segments, 
+  $26M lost) are both severely undersupplied regardless of physical access. 
+  This confirms a dispatch/positioning problem, not infrastructure.
 
 ---
 

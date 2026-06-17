@@ -320,5 +320,17 @@ if not transit_df.empty:
 else:
     st.info("No undersupplied zones within 800m of transit hubs.")
 
+# Road Finding Analysis
+st.markdown(
+    '<div class="finding-item high">'
+    '<div class="finding-title">Road Access Not the Constraint</div>'
+    '<div class="finding-desc">Undersupplied zones avg 113.8 road segments '
+    'vs 95.1 oversupplied. Taxis avoid the most accessible zones. '
+    'LaGuardia: 9 segments, $15M lost.</div>'
+    '<span class="finding-badge high">Strengthens Misallocation</span>'
+    '</div>',
+    unsafe_allow_html=True
+)
+
 # Footer
 st.markdown('<div style="text-align:center;padding:24px 0 12px;border-top:1px solid #1e2433;margin-top:24px;"><span style="font-size:12px;color:#64748b;">Mahardi Setyoso · NYC TLC 2023 · H3 + PostGIS + dbt + Streamlit</span></div>', unsafe_allow_html=True)
