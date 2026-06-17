@@ -4,6 +4,9 @@ import pandas as pd
 import pydeck as pdk
 import os
 import json
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 
 st.set_page_config(
     page_title="GeoOps · NYC Taxi Supply-Demand",
