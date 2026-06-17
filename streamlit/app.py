@@ -125,7 +125,7 @@ with k4:
 with k5:
     st.markdown(f'<div class="kpi-card"><div class="kpi-label">🔵 Oversupplied</div><div class="kpi-value">{len(oversupplied)}</div><div class="kpi-delta neutral">{len(oversupplied)/len(df)*100:.0f}% — fleet rebalance needed</div></div>', unsafe_allow_html=True)
 
-st.markdown('<div style="font-size:11px; color:#64748b; margin-top:8px; padding:6px 12px; background:#111827; border:1px solid #1e2433; border-radius:6px; display:inline-block;">📊 Data: NYC TLC Yellow Taxi Trip Records · Jan 1 – Dec 31, 2023 · 12 months · Source: NYC Open Data</div>', unsafe_allow_html=True)
+st.markdown('<div style="font-size:11px; color:#64748b; margin-top:8px; padding:6px 12px; background:#111827; border:1px solid #1e2433; border-radius:6px; display:inline-block;">📊 Data: NYC TLC Yellow Taxi Trip Records · Jan 1 – Dec 31, 2023 · 12 months · Source: NYC TLC Trip Record Data" (CloudFront)</div>', unsafe_allow_html=True)
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
 # Sidebar
