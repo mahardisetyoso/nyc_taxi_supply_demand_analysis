@@ -11,5 +11,5 @@ geopandas
 shapely
 requests
 db-dtypes
-pyarrowp
+pyarrow
 python-dotenv
