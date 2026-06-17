@@ -561,3 +561,11 @@ kestra/flows/
 **Decision:** Migrate to local Windows VS Code instead of paying or waiting for the reset.
 **Setup:** venv (not the conda base), `requirements.txt`, `profiles.yml` (oauth via ADC), `.env` with python-dotenv.
 **Rationale:** A reproducible local environment is a production-grade skill and a portfolio signal.
+
+## D-057 | OSM Road Density Analysis
+**Date:** 2026-06-17 (Day 10)
+**Finding:** Undersupplied zones avg 113.8 road segments vs oversupplied 95.1.
+Road access is NOT the bottleneck — strengthens fleet misallocation argument.
+LaGuardia (9 segments, $15M) vs JFK (192 segments, $26M) — both undersupplied
+regardless of physical access. Dispatch/positioning is the root cause.
+**Artifact:** osm_streets table in Supabase, road_segment_count column added.
