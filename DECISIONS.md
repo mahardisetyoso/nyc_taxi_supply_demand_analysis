@@ -492,6 +492,42 @@ df_raw = reduce(lambda a, b: a.unionByName(b), dfs)
 
 ---
 
+## D-045a | TLC Schema Evolution — Amendment (January Outlier, Not Mid-Year Drift)
+**Date:** 2026-06-25
+**Status:** AMENDS D-045
+**Trigger:** Schema diff inspection across all 12 months of 2023 TLC Yellow Taxi Parquet revealed the original D-045 framing was imprecise. Captured here for accuracy before publishing the bug-confession post on this finding.
+
+**Corrected finding:** The schema did not "drift mid-2023." January 2023 is a **single-month outlier**. February through December 2023 are consistent. The transition happens at one discrete boundary (Feb 1, 2023), not gradually.
+
+**Corrected schema diff table** (Month 01 vs Months 02-12, all consistent):
+
+| Column | January 2023 | February–December 2023 | Change type |
+|---|---|---|---|
+| VendorID | int64 | int32 | Storage downcast (legacy waste) |
+| passenger_count | double | int64 | Semantic correction (int stored as float) |
+| RatecodeID | double | int64 | Semantic correction (int stored as float) |
+| store_and_fwd_flag | string | large_string | Arrow representation (writer change) |
+| PULocationID | int64 | int32 | Storage downcast |
+| DOLocationID | int64 | int32 | Storage downcast |
+| airport_fee → Airport_fee | `airport_fee` (lowercase) | `Airport_fee` (capital A) | **Column rename** — silent NULL trap |
+
+**New column missed in original D-045:** `store_and_fwd_flag` (string → large_string). At the Spark layer this reads as StringType in both cases, but pyarrow-aware readers (Polars, direct Arrow ingestion) will see the difference.
+
+**Most dangerous change:** The `airport_fee` → `Airport_fee` rename. Parquet column names are case-sensitive — these are treated as two separate columns at merge time, producing silent NULLs in 1/12 or 11/12 of the rows depending on which name the read targets. No error is raised; the data is just half-empty.
+
+**Why the original framing was wrong:** The original D-045 entry described "early 2023" vs "late 2023" as if the change were gradual. The data shows the change is binary: one boundary, one date. Prototyping on January was prototyping on the only month from the legacy regime. The other 11 months were already on the new schema by the time the data was downloaded.
+
+**Updated lesson (supersedes D-045):**
+> Schema changes from external sources tend to ship at discrete boundaries (year start, quarter start, system migration date), not as gradual drift. The first file of a time series is statistically more likely to be from a legacy regime than later files. Inspect the first file with extra suspicion, not less.
+
+**Action items embedded in fix:** No code change required — the `COMMON_COLS` + `unionByName` pattern in D-045 already handles this correctly because it casts every column at read. The fix is independent of how many months are outliers; the lesson is what changes.
+
+**Reproducibility artifact:** `spark/schema_diff.py` — pyarrow-only script that downloads 12 monthly schemas from TLC CloudFront and diffs them against month 01. Runtime ~10 minutes on a residential connection. Output verified the table above on 2026-06-25.
+
+**Forbidden inference for the LinkedIn post:** Do NOT claim "TLC ships schema changes every February." We have one data point (2023). Generalize from "first file is suspicious" only — that's a probabilistic claim about external time-series data in general, defensible from broader engineering experience, not from this single observation.
+
+---
+
 ## D-046 | BigQuery Connector JAR (Dataproc 2.2 Built-in)
 **Date:** 2026-06-09
 **Status:** LOCKED
