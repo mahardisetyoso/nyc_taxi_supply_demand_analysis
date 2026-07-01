@@ -178,7 +178,7 @@ if not borough_loss.empty:
             unsafe_allow_html=True
         )
 
-st.sidebar.markdown('<div class="section-title" style="margin-top:20px;">Map Color Guide</div>')
+st.sidebar.markdown('<div class="section-title" style="margin-top:20px;">Map Color Guide</div><div style="font-size:12px;color:#94a3b8;line-height:1.8;">🔴 <b style="color:#dc2626">Red</b> — Undersupplied (demand > supply)<br>🟡 <b style="color:#eab308">Yellow</b> — Balanced (±10% tolerance)<br>🔵 <b style="color:#1e78dc">Blue</b> — Oversupplied (excess supply)<br><span style="color:#64748b;font-size:11px;">Only red zones contribute to revenue loss.</span></div>', unsafe_allow_html=True)
 
 
 
