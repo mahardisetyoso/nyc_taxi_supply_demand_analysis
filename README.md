@@ -82,6 +82,7 @@ https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-{01..12}.pa
 
 ## Key Findings
 
+> 📊 **See findings interactively:** [nyctaxisupplydemandanalysis.streamlit.app](https://nyctaxisupplydemandanalysis.streamlit.app)
 - **Fleet misallocation is the headline.** 159 oversupplied vs 13 undersupplied — the system has enough taxis, in the wrong cells.
 - **JFK Airport:** $26.3M lost, 79% unmet demand — the single largest opportunity.
 - **LaGuardia Airport:** ~$15.0M, surfaced only after the metric fix.
