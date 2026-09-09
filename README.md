@@ -39,6 +39,16 @@ A production-shaped pipeline: ingestion → warehouse transform → spatial enri
 
 ![Architecture](asset/architecture.svg)
 
+The same pipeline as an **interactive diagram** — a guided tour through ingest, warehouse and serving,
+with every component linked to the code that implements it:
+
+![Guided architecture tour](asset/architecture-guided-tour.gif)
+
+> The tour above is a recording. For the real thing — pan/zoom, search, relationship tracing,
+> per-node source references, light/dark and PNG/SVG export — open
+> [`asset/architecture-interactive.html`](asset/architecture-interactive.html) locally.
+> GitHub displays HTML files as source rather than rendering them.
+
 | Stage | What happens |
 |---|---|
 | **Ingestion** | TLC trip Parquet pulled directly from CloudFront; OSM street network and taxi-zone geometries staged to object storage. Orchestrated with Kestra. |
