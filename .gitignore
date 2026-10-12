@@ -47,4 +47,3 @@ Thumbs.db
 *.parquet
 logs/
 
-spark/error_reproduce.py
