@@ -159,7 +159,9 @@ cd ../.. && streamlit run streamlit/app.py
 
 ## Decisions Log
 
-Every non-obvious technical choice is recorded in [`DECISIONS.md`](DECISIONS.md) (D-001 … D-056), including schema-evolution handling, the rate-aggregation fix (D-055), and the local-dev migration (D-056).
+Every non-obvious technical choice is recorded in [`DECISIONS.md`](DECISIONS.md) (D-001 … D-058), including schema-evolution handling, the rate-aggregation fix (D-055), the local-dev migration (D-056), and the Supabase keepalive (D-058).
+
+Component-by-component data flow, operations, and known gaps are in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 

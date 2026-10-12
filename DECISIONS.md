@@ -605,3 +605,27 @@ Road access is NOT the bottleneck — strengthens fleet misallocation argument.
 LaGuardia (9 segments, $15M) vs JFK (192 segments, $26M) — both undersupplied
 regardless of physical access. Dispatch/positioning is the root cause.
 **Artifact:** osm_streets table in Supabase, road_segment_count column added.
+---
+
+## D-058 | Supabase Keepalive via GitHub Actions Cron
+**Date:** 2026-10-12
+**Status:** LOCKED
+**Context:** Supabase free tier pauses a project after ~7 days without activity. `streamlit/app.py` queries Supabase live on every page load, so a paused project breaks the public dashboard linked from the README, resume, and LinkedIn. The project sat idle Jul–Oct 2026 and required manual checks (REACTIVATE.md §1.1).
+
+**Decision:** A scheduled GitHub Actions workflow (`.github/workflows/supabase-keepalive.yml`) runs `scripts/supabase_keepalive.py` every 3 days. The script opens a psycopg2 connection with `SUPABASE_DB_URL` (repo secret) and runs `count(*)` on `revenue_loss_by_zone` and `osm_streets`.
+
+**Why a real query, not an HTTP ping:** A table read is real database activity (counts toward Supabase's idle check) and doubles as a smoke test — row counts are compared against the baseline (185 / 72,005). A connect failure exits non-zero, so a broken DB surfaces as a red workflow run instead of a broken public dashboard.
+
+**Why GitHub Actions (D-010 exception):** D-010 forbids new tools without a decision entry — this is that entry. Kestra was rejected: it runs locally via Docker Compose and is not up when the laptop is off, which is exactly when the keepalive matters. GitHub Actions is free, always on, and already where the code lives.
+
+**Design details:**
+- Every 3 days (`17 3 */3 * *`) — safely inside the 7-day window, tolerates one missed run.
+- Uses the **session pooler** URL (IPv4). The direct `db.<ref>.supabase.co` host is IPv6-only and unreachable from GitHub runners.
+- GitHub disables scheduled workflows in public repos after 60 days without repo activity. The last step calls `PUT /actions/workflows/supabase-keepalive.yml/enable` (needs `actions: write`) instead of pushing dummy commits.
+- The script never prints the connection string or raw exception text (credentials leaked via terminal output twice before).
+
+**Verified:** 2026-10-12 — local run OK, first `workflow_dispatch` run green (18s).
+
+**Related incident:** The DB password was exposed in a screenshot while creating the GitHub secret (visible to a Grammarly browser extension). Rotated the same day; `.env`, Streamlit Cloud secrets, and the GitHub secret were updated. Rule: disable writing-assistant extensions on secret-entry pages; never screenshot a secret field.
+
+**Out of scope:** Supabase free plan allows 2 active projects per owner across all orgs. Active slots: `nyc-taxi-analysis` + the personal portfolio website DB. `ride-hailing-db` stays paused.
