@@ -1,16 +1,19 @@
-dbt-core
-dbt-bigquery
-streamlit
-pydeck
-pandas
-psycopg2-binary
-google-cloud-bigquery
-google-cloud-storage
-h3
-geopandas
-shapely
-requests
-db-dtypes
-pyarrow
-python-dotenv
-plotly==6.8.0
+# Local dev + pipeline. Dashboard-only deps live in streamlit/requirements.txt.
+# Pinned from the working venv (Python 3.12.3, 2026-10-12).
+-r streamlit/requirements.txt
+
+# Warehouse / dbt
+dbt-core==1.11.11
+dbt-bigquery==1.11.1
+google-cloud-bigquery==3.42.0
+db-dtypes==1.7.0
+pyarrow==24.0.0
+# dbt-bigquery 1.11 requires <3.2. scripts/requirements.txt (gcsfs) pulls
+# 3.12 on top — known conflict, harmless while `dbt debug` is green.
+google-cloud-storage>=2.4,<3.2
+
+# Geospatial
+geopandas==1.1.3
+shapely==2.1.2
+h3==4.5.0
+requests==2.34.2
