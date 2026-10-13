@@ -667,4 +667,6 @@ regardless of physical access. Dispatch/positioning is the root cause.
 4. **ADC by default** — `var.credentials` defaults to `""` → Application Default Credentials. Removes Terraform's dependency on the long-lived SA key file (RE item #9). Kestra still uses the key through its `GCP_CREDS` secret.
 5. `outputs.tf` added. `.terraform.lock.hcl` is now committed (it was gitignored), pinning provider checksums.
 
+**Verified:** 2026-10-13 — bootstrap created the state bucket; `apply` = 3 imported, 1 changed (lifecycle scoped), 0 destroyed; follow-up `plan` = No changes.
+
 **Lesson:** A lifecycle rule is a data-deletion policy. Scope it to the prefix that is meant to expire. A bucket-wide rule silently deleted the one hand-made artifact the pipeline could not re-download.
