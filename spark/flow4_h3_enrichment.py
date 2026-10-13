@@ -18,7 +18,7 @@ Schema evolution handling:
   VendorID/PULocationID/DOLocationID: BIGINT vs INT
   Airport_fee vs airport_fee (case mismatch)
 
-Run:
+Run: via Kestra flow_04_spark_h3_enrichment (D-059). Manual equivalent:
   gcloud dataproc jobs submit pyspark \
     gs://hardy-geo-de-267342/spark_jobs/flow4_h3_enrichment.py \
     --cluster=geoops-spark \

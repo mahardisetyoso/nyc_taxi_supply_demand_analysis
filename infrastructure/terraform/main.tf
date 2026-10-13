@@ -1,14 +1,25 @@
 terraform {
+  required_version = ">= 1.5" # import blocks
+
   required_providers {
     google = {
       source  = "hashicorp/google"
       version = "5.6.0"
     }
   }
+
+  # Remote state (D-060). The bucket is created once by bootstrap.ps1 —
+  # it cannot be managed here because the backend must exist before init.
+  backend "gcs" {
+    bucket = "hardy-geo-portofolio-tfstate"
+    prefix = "nyc-taxi-supply-demand"
+  }
 }
 
 provider "google" {
-  credentials = file(var.credentials)
+  # Empty credentials = Application Default Credentials
+  # (`gcloud auth application-default login`), same auth as dbt.
+  credentials = var.credentials != "" ? file(var.credentials) : null
   project     = var.project
   region      = var.region
 }
@@ -18,8 +29,13 @@ resource "google_storage_bucket" "geoops_raw" {
   location      = var.location
   force_destroy = true
 
+  # Only the bulky, re-downloadable TLC Parquet expires (D-060). The 90-day rule
+  # used to apply bucket-wide and silently deleted the H3 lookup CSV too.
   lifecycle_rule {
-    condition { age = 90 }
+    condition {
+      age            = 90
+      matches_prefix = ["raw/tlc_yellow/"]
+    }
     action { type = "Delete" }
   }
 
@@ -39,64 +55,7 @@ resource "google_bigquery_dataset" "geoops_dbt_dev" {
   location   = var.location
 }
 
-# ──────────────────────────────────────────────────────────
-# Dataproc cluster untuk PySpark H3 enrichment (Week 3)
-# ──────────────────────────────────────────────────────────
-resource "google_dataproc_cluster" "geoops_spark" {
-  name   = var.dataproc_cluster_name
-  region = var.region
-
-  cluster_config {
-    # Master node — 1 instance untuk koordinasi (non-HA, portfolio scale)
-    master_config {
-      num_instances = 1
-      machine_type  = "n2-standard-2" # 2 vCPU, 8 GB RAM
-      disk_config {
-        boot_disk_size_gb = 100
-        boot_disk_type    = "pd-standard"
-      }
-    }
-
-    # Worker nodes — 2 instance minimum (Dataproc requirement)
-    worker_config {
-      num_instances = var.dataproc_worker_count
-      machine_type  = "n2-standard-2"
-      disk_config {
-        boot_disk_size_gb = 100
-        boot_disk_type    = "pd-standard"
-      }
-    }
-
-    # Software: Spark 3.5 + Jupyter optional component
-    software_config {
-      image_version       = "2.2-debian12"
-      optional_components = ["JUPYTER"]
-      override_properties = {
-        "spark:spark.sql.adaptive.enabled"                    = "true"
-        "spark:spark.sql.adaptive.coalescePartitions.enabled" = "true"
-      }
-    }
-
-    # Service account + scope untuk akses GCS dan BigQuery
-    gce_cluster_config {
-      service_account        = "terraform-runner@${var.project}.iam.gserviceaccount.com"
-      service_account_scopes = ["cloud-platform"]
-    }
-
-    # AUTO-DELETE setelah 30 menit idle — proteksi cost utama
-    lifecycle_config {
-      idle_delete_ttl = "1800s"
-    }
-
-    # Component Gateway: akses Spark UI, Jupyter, YARN UI via HTTPS
-    endpoint_config {
-      enable_http_port_access = true
-    }
-  }
-
-  labels = {
-    environment = "dev"
-    project     = "nyc-taxi-supply-demand"
-    component   = "spark"
-  }
-}
+# Dataproc is NOT managed here (D-059). The cluster is ephemeral: Kestra
+# flow_04 creates it, submits the job, and deletes it in a `finally` block.
+# Keeping it in Terraform caused permanent drift — idle_delete_ttl destroyed
+# it after 30 min, so every `terraform plan` wanted to recreate it.

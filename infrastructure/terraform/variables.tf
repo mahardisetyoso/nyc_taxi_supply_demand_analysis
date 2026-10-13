@@ -1,6 +1,7 @@
 variable "credentials" {
-  description = "GCP Service Account Key"
-  default     = "./keys/my-creds.json"
+  description = "Path to a service account key. Empty = Application Default Credentials (preferred)."
+  type        = string
+  default     = ""
 }
 
 variable "project" {
@@ -31,16 +32,4 @@ variable "bq_dataset_raw" {
 variable "bq_dataset_dbt" {
   description = "BigQuery dbt Dev Dataset"
   default     = "geoops_dbt_dev"
-}
-
-variable "dataproc_cluster_name" {
-  description = "Dataproc cluster name"
-  type        = string
-  default     = "geoops-spark"
-}
-
-variable "dataproc_worker_count" {
-  description = "Number of Dataproc worker nodes (minimum 2)"
-  type        = number
-  default     = 2
 }

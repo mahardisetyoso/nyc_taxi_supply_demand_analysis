@@ -1,0 +1,110 @@
+id: flow_04_spark_h3_enrichment
+namespace: geoops.portfolio.transform
+description: |
+  GCS raw TLC Parquet → PySpark H3 enrichment on an EPHEMERAL Dataproc cluster
+  → BigQuery geoops_raw.yellow_trips_h3_enriched (D-059).
+
+  create cluster → submit spark/flow4_h3_enrichment.py → verify row count
+  → delete cluster (in `finally`, so it runs even when the job fails).
+
+  The Spark script and the H3 lookup are pulled from GitHub at `git_ref`, so the
+  repo is the single source of truth — nothing needs to be pre-staged in GCS
+  except the TLC Parquet from flow_01 (all 12 months of 2023).
+
+  Downstream (still manual): dbt build → export to Supabase → osm_road_density.py.
+
+inputs:
+  - id: git_ref
+    type: STRING
+    defaults: main
+    description: Branch, tag, or commit of the repo to run
+
+concurrency:
+  limit: 1   # fixed cluster name — never run two at once
+
+variables:
+  bucket: hardy-geo-de-267342
+  region: asia-southeast1
+  cluster: geoops-spark
+  sa: terraform-runner@hardy-geo-portofolio.iam.gserviceaccount.com
+  raw_base: "https://raw.githubusercontent.com/mahardisetyoso/nyc_taxi_supply_demand_analysis/{{ inputs.git_ref }}"
+  lookup_gcs: "gs://hardy-geo-de-267342/raw/reference/location_h3_lookup.csv"
+  bq_table: "hardy-geo-portofolio.geoops_raw.yellow_trips_h3_enriched"
+
+tasks:
+  - id: set_labels
+    type: io.kestra.plugin.core.execution.Labels
+    labels:
+      layer: "transform"
+      engine: "dataproc"
+      git_ref: "{{ inputs.git_ref }}"
+
+  # Fail fast (and cheap) before paying for a cluster.
+  - id: preflight_inputs
+    type: io.kestra.plugin.gcp.cli.GCloudCLI
+    commands:
+      - |
+        missing=0
+        for m in 01 02 03 04 05 06 07 08 09 10 11 12; do
+          if ! gcloud storage ls "gs://{{ vars.bucket }}/raw/tlc_yellow/year=2023/month=$m/" >/dev/null 2>&1; then
+            echo "MISSING: TLC 2023-$m — backfill flow_01_tlc_parquet_to_gcs for this month"
+            missing=1
+          fi
+        done
+        [ $missing -eq 0 ] || exit 1
+        echo "All 12 TLC months present"
+
+  # D-044 lookup, derived from the committed dbt seed (same 260 rows).
+  # Spark expects exactly two columns: LocationID,h3_res8.
+  - id: stage_h3_lookup
+    type: io.kestra.plugin.gcp.cli.GCloudCLI
+    commands:
+      - curl -fsSL "{{ render(vars.raw_base) }}/dbt/nyc_taxi_supply_demand/seeds/location_h3_zone_lookup.csv" -o seed.csv
+      - awk -F, 'NR==1 {print "LocationID,h3_res8"; next} {print $1 "," $2}' seed.csv > location_h3_lookup.csv
+      - test "$(wc -l < location_h3_lookup.csv)" -eq 261 || { echo "Expected 260 lookup rows"; exit 1; }
+      - gcloud storage cp location_h3_lookup.csv "{{ vars.lookup_gcs }}"
+
+  - id: create_cluster
+    type: io.kestra.plugin.gcp.cli.GCloudCLI
+    commands:
+      # Config mirrors D-038. --max-idle is a second safety net behind `finally`.
+      - >-
+        gcloud dataproc clusters create {{ vars.cluster }}
+        --region={{ vars.region }}
+        --image-version=2.2-debian12
+        --master-machine-type=n2-standard-2 --master-boot-disk-size=100GB --master-boot-disk-type=pd-standard
+        --num-workers=2 --worker-machine-type=n2-standard-2 --worker-boot-disk-size=100GB --worker-boot-disk-type=pd-standard
+        --service-account={{ vars.sa }} --scopes=cloud-platform
+        --properties=spark:spark.sql.adaptive.enabled=true,spark:spark.sql.adaptive.coalescePartitions.enabled=true
+        --max-idle=30m
+        --labels=environment=dev,project=nyc-taxi-supply-demand,component=spark,kestra-execution={{ execution.id | lower }}
+
+  - id: submit_job
+    type: io.kestra.plugin.gcp.cli.GCloudCLI
+    commands:
+      # gcloud uploads the local file to the cluster's staging bucket itself.
+      - curl -fsSL "{{ render(vars.raw_base) }}/spark/flow4_h3_enrichment.py" -o flow4_h3_enrichment.py
+      - gcloud dataproc jobs submit pyspark flow4_h3_enrichment.py --cluster={{ vars.cluster }} --region={{ vars.region }}
+
+  - id: verify_output
+    type: io.kestra.plugin.gcp.cli.GCloudCLI
+    commands:
+      # Flow 4 production baseline: 34,955,847 rows (DECISIONS.md)
+      - bq query --nouse_legacy_sql --format=pretty 'SELECT COUNT(*) AS rows, COUNTIF(h3_pickup_res8 IS NULL) AS null_h3 FROM `{{ vars.bq_table }}`'
+
+finally:
+  - id: delete_cluster
+    type: io.kestra.plugin.gcp.cli.GCloudCLI
+    commands:
+      - |
+        if gcloud dataproc clusters describe {{ vars.cluster }} --region={{ vars.region }} >/dev/null 2>&1; then
+          gcloud dataproc clusters delete {{ vars.cluster }} --region={{ vars.region }} --quiet
+        else
+          echo "No cluster to delete"
+        fi
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp.cli.GCloudCLI
+    values:
+      serviceAccount: "{{ secret('GCP_CREDS') }}"
+      projectId: "hardy-geo-portofolio"

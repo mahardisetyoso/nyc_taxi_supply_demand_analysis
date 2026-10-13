@@ -568,7 +568,7 @@ kestra/flows/
 ├── flow_01_tlc_parquet_to_gcs.yaml          ← raw layer (done Day 2)
 ├── flow_02_osm_pbf_to_gcs.yaml              ← raw layer (TBD)
 ├── flow_03_taxi_zones_and_h3_grid.yaml      ← raw + derived (Day 3)
-└── flow_04_spark_h3_enrichment.yaml         ← transform layer (later)
+└── flow_04_spark_h3_enrichment.yaml         ← transform layer (built 2026-10-13, D-059)
 ```
 
 ---
@@ -629,3 +629,42 @@ regardless of physical access. Dispatch/positioning is the root cause.
 **Related incident:** The DB password was exposed in a screenshot while creating the GitHub secret (visible to a Grammarly browser extension). Rotated the same day; `.env`, Streamlit Cloud secrets, and the GitHub secret were updated. Rule: disable writing-assistant extensions on secret-entry pages; never screenshot a secret field.
 
 **Out of scope:** Supabase free plan allows 2 active projects per owner across all orgs. Active slots: `nyc-taxi-analysis` + the personal portfolio website DB. `ride-hailing-db` (Jakarta pickup-zone project, never deployed) was deleted 2026-10-13 (it was paused, so both active slots remain in use).
+
+---
+
+## D-059 | Ephemeral Dataproc via Kestra flow_04 (Cluster Leaves Terraform)
+**Date:** 2026-10-13
+**Status:** LOCKED · supersedes the lifecycle part of D-038 (sizing unchanged)
+**Context:** Spark enrichment was run by hand (`gcloud dataproc jobs submit`) on a Terraform-managed cluster with `idle_delete_ttl = 1800s`. Two problems: (1) orchestration stopped at ingestion — flow_04 was planned in "Pipeline Naming" but never built; (2) Terraform and the TTL fought each other — Dataproc deleted the idle cluster, so every `terraform plan` showed drift and wanted to recreate a billable cluster.
+
+**Decision:** `kestra/flows/flow_04_spark_h3_enrichment.yaml` owns the cluster lifecycle: preflight → stage lookup → create cluster → submit job → verify row count, with cluster deletion in Kestra's `finally` block so it runs even when the job fails. Terraform no longer declares the cluster.
+
+**Design details:**
+- All tasks use `io.kestra.plugin.gcp.cli.GCloudCLI` (google/cloud-sdk container) with the existing `GCP_CREDS` secret. Same D-036 pattern: Kestra only submits; compute runs on Dataproc.
+- **Repo = source of truth.** The Spark script and the H3 lookup are fetched from GitHub at the `git_ref` input. No hand-staged GCS artifacts that can drift or expire.
+- The D-044 lookup is derived from the committed dbt seed (`location_id,h3_res8,…` → `LocationID,h3_res8`, 260 rows, row-count asserted).
+- Preflight checks all 12 TLC months exist in GCS before paying for a cluster.
+- Cluster config mirrors D-038 (1+2 × n2-standard-2, 2.2-debian12, AQE). JUPYTER/Component Gateway dropped: a job-scoped cluster has no interactive session to debug. `--max-idle=30m` stays as a second safety net.
+- `concurrency.limit: 1` — the cluster name is fixed.
+
+**Still manual (documented, not hidden):** dbt build → BigQuery-to-Supabase export → `osm_road_density.py`.
+
+**Not yet run end-to-end:** GCS raw was empty on 2026-10-13 (see D-060), so a run first needs a 12-month flow_01 backfill. BigQuery output from the June run is intact.
+
+---
+
+## D-060 | Terraform Remote State + Scoped GCS Lifecycle
+**Date:** 2026-10-13
+**Status:** LOCKED
+**Context:**
+- No `terraform.tfstate` existed anywhere. The state lived in the Codespaces workspace and was lost in the D-056 move to local Windows. Infra was not reproducible and `terraform apply` would have tried to create resources that already exist.
+- `gcloud storage ls` on 2026-10-13 showed `gs://hardy-geo-de-267342` **empty**. The bucket-wide `age = 90` Delete rule had removed the TLC Parquet, OSM, H3 grid, the D-044 lookup CSV, and the staged Spark script. BigQuery (`geoops_raw`, `geoops_dbt_dev`) was unaffected, so the dashboard never broke.
+
+**Decision:**
+1. **GCS backend** — `gs://hardy-geo-portofolio-tfstate`, prefix `nyc-taxi-supply-demand`, versioning on, uniform access, public access prevention. Created once by `infrastructure/terraform/bootstrap.ps1` (a backend cannot manage its own bucket).
+2. **Adopt, don't recreate** — `imports.tf` holds `import {}` blocks for the bucket and both datasets. The first `apply` writes them into remote state with no infra change.
+3. **Lifecycle scoped to `raw/tlc_yellow/`** — only the large, re-downloadable Parquet expires. Small reference artifacts are kept.
+4. **ADC by default** — `var.credentials` defaults to `""` → Application Default Credentials. Removes Terraform's dependency on the long-lived SA key file (RE item #9). Kestra still uses the key through its `GCP_CREDS` secret.
+5. `outputs.tf` added. `.terraform.lock.hcl` is now committed (it was gitignored), pinning provider checksums.
+
+**Lesson:** A lifecycle rule is a data-deletion policy. Scope it to the prefix that is meant to expire. A bucket-wide rule silently deleted the one hand-made artifact the pipeline could not re-download.

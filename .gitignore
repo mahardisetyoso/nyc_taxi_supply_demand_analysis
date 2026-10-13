@@ -3,7 +3,6 @@
 *.tfstate
 *.tfstate.*
 *.tfvars
-.terraform.lock.hcl
 override.tf
 override.tf.json
 

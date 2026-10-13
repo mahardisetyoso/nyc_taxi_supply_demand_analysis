@@ -20,11 +20,12 @@ flowchart LR
         F1[flow_01<br/>tlc_parquet_to_gcs]
         F2[flow_02<br/>osm_streets_to_gcs]
         F3[flow_03<br/>taxi_zones_and_h3_grid]
+        F4[flow_04<br/>spark_h3_enrichment]
     end
 
     subgraph GCP[GCP · asia-southeast1 · Terraform]
         GCS[(GCS bucket<br/>hardy-geo-de-267342)]
-        DP[Dataproc geoops-spark<br/>PySpark flow4_h3_enrichment]
+        DP[Ephemeral Dataproc<br/>PySpark flow4_h3_enrichment]
         BQR[(BigQuery<br/>geoops_raw)]
         BQD[(BigQuery<br/>geoops_dbt_dev)]
     end
@@ -43,6 +44,7 @@ flowchart LR
     OSM --> F2 --> GCS
     NYC --> F3 --> GCS
     GCS --> DP --> BQR
+    F4 -- create · submit · delete --> DP
     BQR --> DBT --> BQD
     BQD -. manual export .-> RL
     GCS -. osm_road_density.py .-> OS
@@ -59,9 +61,9 @@ Solid arrows are automated or scripted steps. Dotted arrows are steps run by han
 
 | # | Layer | Tool | Runs where | Repo path | Decisions |
 |---|---|---|---|---|---|
-| 1 | Infrastructure | Terraform | Local CLI → GCP | `infrastructure/terraform/` | D-011 – D-016, D-038 |
-| 2 | Ingestion / orchestration | Kestra | Docker Compose (local) | `kestra/flows/`, `docker-compose.yaml` | D-017, D-019, D-032 – D-036 |
-| 3 | Processing | PySpark | Dataproc `geoops-spark` | `spark/flow4_h3_enrichment.py` | D-040 – D-046 |
+| 1 | Infrastructure | Terraform (GCS remote state) | Local CLI → GCP | `infrastructure/terraform/` | D-011 – D-016, D-060 |
+| 2 | Ingestion / orchestration | Kestra | Docker Compose (local) | `kestra/flows/`, `docker-compose.yaml` | D-017, D-019, D-032 – D-036, D-059 |
+| 3 | Processing | PySpark | Ephemeral Dataproc (created by flow_04) | `spark/flow4_h3_enrichment.py` | D-040 – D-046, D-059 |
 | 4 | Warehouse transform | dbt-bigquery | Local CLI (ADC oauth) | `dbt/nyc_taxi_supply_demand/` | D-055 |
 | 5 | Spatial serving DB | Supabase PostGIS 3.3 | Supabase cloud | `scripts/osm_road_density.py` | D-009, D-031, D-057 |
 | 6 | Presentation | Streamlit + pydeck | Streamlit Community Cloud | `streamlit/app.py` | — |
@@ -79,9 +81,13 @@ Solid arrows are automated or scripted steps. Dotted arrows are steps run by han
 | `flow_02_osm_streets_to_gcs` | Geofabrik NY State extract, filtered to drivable highway classes (D-033), bbox-clipped (D-034) | GeoParquet in `raw/` |
 | `flow_03_taxi_zones_and_h3_grid` | NYC Open Data taxi zones | `raw/reference/nyc_taxi_zones.geojson`, `raw/h3_grid/h3_res8_nyc.parquet` |
 
-Plus one pre-computed reference artifact (D-044): `raw/reference/location_h3_lookup.csv` — 260 rows, `LocationID → h3_res8`. It is built outside the cluster because Dataproc nodes have no internet access for `pip install`.
+Plus one reference artifact (D-044): `raw/reference/location_h3_lookup.csv` — 260 rows, `LocationID → h3_res8`. It is precomputed because Dataproc nodes have no internet access for `pip install`. flow_04 rebuilds it from the committed dbt seed on every run (D-059).
 
-### 3.2 Processing (PySpark on Dataproc)
+Only `raw/tlc_yellow/` expires after 90 days (D-060). Re-running flow_04 after that needs a flow_01 backfill.
+
+### 3.2 Processing (PySpark on Dataproc, orchestrated by flow_04)
+
+`kestra/flows/flow_04_spark_h3_enrichment.yaml` runs: preflight (12 TLC months in GCS?) → stage lookup → create cluster → submit job → verify row count → **delete cluster in `finally`**. The Spark script and lookup are fetched from GitHub at the `git_ref` input.
 
 `spark/flow4_h3_enrichment.py`:
 
@@ -90,7 +96,7 @@ Plus one pre-computed reference artifact (D-044): `raw/reference/location_h3_loo
 3. Joins the LocationID → H3 lookup for pickup and dropoff (D-041).
 4. Writes `geoops_raw.yellow_trips_h3_enriched` via the built-in BigQuery connector (D-046) — partitioned by `DAY(tpep_pickup_datetime)`, clustered by `h3_pickup_res8, h3_dropoff_res8`.
 
-The cluster is disposable: the job is re-runnable and the cluster should be deleted when idle (~$0.20/hr).
+The cluster exists only for the length of a run (~$0.20/hr). Terraform does not manage it (D-059).
 
 ### 3.3 Warehouse transform (dbt → `geoops_dbt_dev`)
 
@@ -151,9 +157,9 @@ GitHub Actions cron "17 3 */3 * *"
 
 | Resource | Billing | Policy |
 |---|---|---|
-| Dataproc `geoops-spark` | Per hour while it exists | Delete after each job run |
+| Dataproc `geoops-spark` | Per hour while it exists | Created and deleted by flow_04; `--max-idle=30m` backup |
 | BigQuery | Storage + on-demand query | Partition + cluster on the enriched table |
-| GCS | Storage | Raw zone only, no duplication |
+| GCS | Storage | `raw/tlc_yellow/` expires after 90 days; Terraform state bucket versioned |
 | Supabase | Free tier (500 MB, 2 active projects per owner) | Keepalive; both active slots in use (this project + portfolio website DB) |
 | Streamlit Cloud, GitHub Actions | Free | — |
 
@@ -165,7 +171,7 @@ GitHub Actions cron "17 3 */3 * *"
 |---|---|---|
 | `SUPABASE_DB_URL` (session pooler, IPv4) | Streamlit app, scripts, keepalive | `.env` (local), Streamlit Cloud secrets, GitHub Actions secret |
 | GCP credentials | dbt, gcloud | Application Default Credentials (`gcloud auth application-default login`) |
-| Terraform vars | Terraform | `infrastructure/terraform/terraform.tfvars` |
+| Terraform auth | Terraform | ADC by default; optional `credentials` var → SA key path |
 
 All are gitignored (`.env`, `*.json`, `*secret*`, `*creds*`, `terraform.tfvars`). When rotating the Supabase password, update **all three** locations of `SUPABASE_DB_URL` — missing Streamlit Cloud breaks the public dashboard.
 
@@ -175,7 +181,7 @@ All are gitignored (`.env`, `*.json`, `*secret*`, `*creds*`, `terraform.tfvars`)
 
 Stated up front rather than left for a reviewer to find:
 
-1. **Orchestration covers ingestion only.** `flow_04_spark_h3_enrichment` is planned but not built; the Spark job, `dbt build`, the BigQuery → Supabase export, and `osm_road_density.py` are run by hand.
+1. **Orchestration stops after Spark.** flow_01–04 cover ingestion and enrichment. `dbt build`, the BigQuery → Supabase export, and `osm_road_density.py` are run by hand.
 2. **The BigQuery → Supabase export is not scripted in this repo.** `revenue_loss_by_zone` was loaded manually.
-3. **Terraform state is local** — no remote backend, so infra is not reproducible from a clean machine.
+3. **flow_04 has not run end-to-end yet.** GCS raw expired (D-060). The first run needs a 12-month flow_01 backfill.
 4. **CI covers only the keepalive.** No automated `dbt build` or lint on push.
