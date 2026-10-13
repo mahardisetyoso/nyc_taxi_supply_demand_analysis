@@ -628,4 +628,4 @@ regardless of physical access. Dispatch/positioning is the root cause.
 
 **Related incident:** The DB password was exposed in a screenshot while creating the GitHub secret (visible to a Grammarly browser extension). Rotated the same day; `.env`, Streamlit Cloud secrets, and the GitHub secret were updated. Rule: disable writing-assistant extensions on secret-entry pages; never screenshot a secret field.
 
-**Out of scope:** Supabase free plan allows 2 active projects per owner across all orgs. Active slots: `nyc-taxi-analysis` + the personal portfolio website DB. `ride-hailing-db` stays paused.
+**Out of scope:** Supabase free plan allows 2 active projects per owner across all orgs. Active slots: `nyc-taxi-analysis` + the personal portfolio website DB. `ride-hailing-db` (Jakarta pickup-zone project, never deployed) was deleted 2026-10-13 (it was paused, so both active slots remain in use).

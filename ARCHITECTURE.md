@@ -154,7 +154,7 @@ GitHub Actions cron "17 3 */3 * *"
 | Dataproc `geoops-spark` | Per hour while it exists | Delete after each job run |
 | BigQuery | Storage + on-demand query | Partition + cluster on the enriched table |
 | GCS | Storage | Raw zone only, no duplication |
-| Supabase | Free tier (500 MB, 2 active projects per owner) | Keepalive; `ride-hailing-db` stays paused |
+| Supabase | Free tier (500 MB, 2 active projects per owner) | Keepalive; both active slots in use (this project + portfolio website DB) |
 | Streamlit Cloud, GitHub Actions | Free | — |
 
 ---
