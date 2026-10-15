@@ -374,7 +374,7 @@ display.columns = ['Zone','Borough','Status','Demand (trips)','Supply (trips)','
 display['Unmet Rate'] = display['Unmet Rate'].apply(lambda x: f"{x:.1%}")
 display['S/D Ratio'] = display['S/D Ratio'].apply(lambda x: f"{x:.2f}")
 display['Revenue Loss (USD)'] = display['Revenue Loss (USD)'].apply(lambda x: f"${x:,.0f}")
-st.dataframe(display, use_container_width=True, hide_index=True, height=300)
+st.dataframe(display, width="stretch", hide_index=True, height=300)
 
 # Transit Hub Analysis
 st.markdown('<div class="section-title" style="margin-top:16px;">🚇 Undersupplied Zones Near Transit Hubs (800m Walking Radius)</div><div style="font-size:12px;color:#64748b;margin-bottom:12px;">Highest priority for fleet redeployment: high foot traffic + unmet taxi demand.</div>', unsafe_allow_html=True)
@@ -382,7 +382,7 @@ transit_df = load_transit()
 if not transit_df.empty:
     transit_df.columns = ['Transit Hub','Zone','Borough','Revenue Loss (USD)','Distance (m)']
     transit_df['Revenue Loss (USD)'] = transit_df['Revenue Loss (USD)'].apply(lambda x: f"${float(x):,.0f}")
-    st.dataframe(transit_df, use_container_width=True, hide_index=True)
+    st.dataframe(transit_df, width="stretch", hide_index=True)
 else:
     st.info("No undersupplied zones within 800m of transit hubs.")
 
@@ -445,7 +445,7 @@ with rc2:
         xaxis=dict(gridcolor='#1e2433', zerolinecolor='#1e2433'),
         yaxis=dict(gridcolor='#1e2433', zerolinecolor='#1e2433'),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.caption("Road segment distribution by zone status. Undersupplied zones (red) are NOT lower — median sits above oversupplied (blue).")
 
 # Footer
@@ -469,7 +469,7 @@ st.markdown(
 st.markdown('<div style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">System Architecture — 6-layer stack, one region</div>', unsafe_allow_html=True)
 arch_l, arch_c, arch_r = st.columns([1, 6, 1])
 with arch_c:
-    st.image("asset/architecture.svg", use_container_width=True)
+    st.image("asset/architecture.svg", width="stretch")
 
 st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
 
@@ -477,7 +477,7 @@ st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
 st.markdown('<div style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Data Flow — one NYC taxi trip end-to-end</div>', unsafe_allow_html=True)
 gif_l, gif_c, gif_r = st.columns([1, 2, 1])
 with gif_c:
-    st.image("asset/post4_nyc_taxi_pipeline.gif", use_container_width=True)
+    st.image("asset/post4_nyc_taxi_pipeline.gif", width="stretch")
 
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
